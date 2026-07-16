@@ -1,0 +1,1866 @@
+<html>
+<head>
+    <title>Cado</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.1/dist/css/bootstrap.min.css" rel="stylesheet"
+          integrity="sha384-4bw+/aepP/YC94hEpVNVgiZdgIC5+VKNBQNGCHeKRQN+PtmoHDEXuppvnDJzQIu9" crossorigin="anonymous">
+    <link href="style2.css" rel="stylesheet">
+    <link rel="icon" href="/favicon.ico" sizes="any">
+    <link rel="icon" type="image/png" href="/icons/icon-192.png?v=2">
+    <link rel="manifest" href="/manifest.webmanifest?v=2">
+    <link rel="apple-touch-icon" href="/apple-touch-icon.png?v=2">
+    <link rel="apple-touch-icon-precomposed" href="/apple-touch-icon-precomposed.png?v=2">
+    <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon-180x180.png?v=2">
+    <link rel="apple-touch-icon" sizes="167x167" href="/icons/apple-touch-icon-167.png?v=2">
+    <link rel="apple-touch-icon" sizes="152x152" href="/apple-touch-icon-152x152.png?v=2">
+    <link rel="apple-touch-icon" sizes="120x120" href="/apple-touch-icon-120x120.png?v=2">
+    <meta name="theme-color" content="#0D1117">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-title" content="Cado">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css"
+          crossorigin="anonymous" referrerpolicy="no-referrer"/>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+</head>
+<body>
+
+<div class="loader" id="preloader"><div class="spinner"></div></div>
+
+<!-- ══ CALL MODAL ═══════════════════════════════════════════════════════════ -->
+<div class="call-modal" id="callModal" style="display:none;">
+    <button class="call-modal-minimize" id="callMinimizeBtn" onclick="minimizeCall()" title="Minimize">
+        <i class="fa-solid fa-minus"></i>
+    </button>
+    <div class="call-modal-bg"></div>
+    <div class="call-modal-content">
+        <div class="call-modal-avatar" id="callModalAvatar"></div>
+        <div class="call-modal-name" id="callModalName">—</div>
+        <div class="call-modal-status" id="callModalStatus">Calling…</div>
+        <div class="call-modal-controls">
+            <div class="call-secondary-btns" id="callSecondaryBtns">
+                <button class="call-secondary-btn" id="muteMicBtn" onclick="toggleMute()">
+                    <div class="call-secondary-icon"><i class="fa-solid fa-microphone"></i></div>
+                    <span class="call-secondary-label">Mute</span>
+                </button>
+                <button class="call-secondary-btn" id="speakerBtn" onclick="toggleSpeaker()">
+                    <div class="call-secondary-icon"><i class="fa-solid fa-volume-high"></i></div>
+                    <span class="call-secondary-label">Speaker</span>
+                </button>
+            </div>
+            <div class="call-primary-btns" id="callPrimaryBtns">
+                <button class="call-primary-btn end" id="cancelCallBtn" onclick="endCall()">
+                    <div class="call-primary-icon"><i class="fa-solid fa-phone-slash"></i></div>
+                    <span class="call-primary-label">End</span>
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="call-minimized" id="callMinimized" style="display:none;" onclick="restoreCall()">
+    <div class="call-min-avatar" id="callMinAvatar"></div>
+    <div class="call-min-info">
+        <span class="call-min-name" id="callMinName">—</span>
+        <span class="call-min-status" id="callMinStatus">Connected</span>
+    </div>
+    <button class="call-min-end" onclick="event.stopPropagation(); endCall()" title="End call">
+        <i class="fa-solid fa-x"></i>
+    </button>
+</div>
+
+<audio id="remoteAudio" autoplay playsinline></audio>
+
+<div class="app-shell" id="appShell">
+
+    <!-- ══ TAB VIEWS (chats / contacts / calls) ═══════════════════════════ -->
+    <div class="tab-views" id="tabViews">
+
+        <!-- Chats Tab -->
+        <div class="tab-pane active" id="paneChats">
+            <div class="pane-header">
+                <span class="pane-title">Chats</span>
+                <button class="pane-header-btn" onclick="AddMember()" title="New chat">
+                    <i class="fa-solid fa-pen-to-square"></i>
+                </button>
+            </div>
+            <div class="pane-search-box">
+                <i class="fa-solid fa-search"></i>
+                <input class="pane-search" placeholder="Search chats..." oninput="filterChats(this.value)">
+            </div>
+            <ul class="nav nav-tabs chat-list" id="iconList" role="tablist"></ul>
+        </div>
+
+        <!-- Contacts Tab -->
+        <div class="tab-pane" id="paneContacts">
+            <div class="pane-header">
+                <span class="pane-title">Contacts</span>
+            </div>
+            <div class="pane-search-box">
+                <i class="fa-solid fa-search"></i>
+                <input class="pane-search" placeholder="Search contacts..." oninput="filterContacts(this.value)">
+            </div>
+            <ul class="contacts-list" id="contactsTabList">
+                <div class="list-empty" id="contactsEmpty">
+                    <i class="fa-solid fa-address-book"></i>
+                    <p>No contacts yet</p>
+                </div>
+            </ul>
+        </div>
+
+        <!-- Calls Tab -->
+        <div class="tab-pane" id="paneCalls">
+            <div class="pane-header">
+                <span class="pane-title">Calls</span>
+            </div>
+            <ul class="calls-list" id="callsTabList">
+                <div class="list-empty" id="callsEmpty">
+                    <i class="fa-solid fa-phone"></i>
+                    <p>No calls yet</p>
+                </div>
+            </ul>
+        </div>
+
+        <!-- Profile Tab -->
+        <div class="tab-pane" id="paneProfile">
+            <div class="pane-header">
+                <span class="pane-title">Profile</span>
+            </div>
+            <div class="profile-tab-scroll" id="profileTabContent">
+                <div class="list-empty"><i class="fa-solid fa-user"></i><p>Loading...</p></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ══ CHAT VIEW (overlays everything when open) ════════════════════ -->
+    <div class="chat-main" id="chatView">
+        <header class="chat-header" id="chatHeader">
+            <button class="topbar-back" id="topbarBack" title="Back">
+                <i class="fa-solid fa-chevron-left"></i>
+            </button>
+            <div class="chat-header-left" onclick="viewProfile(Interlocutor.getUsername())">
+                <div class="chat-header-avatar" id="headerAvatar"></div>
+                <div class="chat-header-info">
+                    <div class="chat-header-name" id="headerName">—</div>
+                    <div class="chat-header-status" id="headerStatus">
+                        <span class="status-dot" id="statusDot"></span>
+                        <span id="statusText">Online</span>
+                    </div>
+                </div>
+            </div>
+            <div class="chat-header-actions">
+                <button class="header-icon-btn call-start-btn" id="startCallBtn"
+                        onclick="startCall()" title="Voice call">
+                    <i class="fa-solid fa-phone"></i>
+                </button>
+                <div class="btn-group">
+                    <button type="button" id="clear" class="header-icon-btn"
+                            data-bs-toggle="dropdown" aria-expanded="false">
+                        <i class="fa-solid fa-ellipsis-vertical"></i>
+                    </button>
+                    <div class="dropdown-menu dropdown-menu-end">
+                        <a class="dropdown-item" onclick="viewProfile(Interlocutor.getUsername())">
+                            <i class="fa-solid fa-user"></i> View Profile
+                        </a>
+                        <a class="dropdown-item" onclick="startCall()">
+                            <i class="fa-solid fa-phone"></i> Voice Call
+                        </a>
+                        <div class="dropdown-divider"></div>
+                        <a class="dropdown-item" onclick="openChatCfgPanel()">
+                            <i class="fa-solid fa-palette"></i> Chat Appearance
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </header>
+
+        <div class="info" id="info">
+            <div class="info-icon"><i class="fa-regular fa-comments"></i></div>
+            <h3>Your Messages</h3>
+            <p>Select a conversation or add someone new to start chatting.</p>
+        </div>
+
+        <div class="tab-content" id="TabList"></div>
+
+        <div class="dock" id="dock">
+            <form id="form" action="">
+                <div class="btn-group dropup">
+                    <button type="button" class="dock-icon-btn"
+                            data-bs-toggle="dropdown" aria-expanded="false" title="Attach">
+                        <i class="fa-solid fa-paperclip"></i>
+                    </button>
+                    <div class="dropdown-menu dropdown-menu-end">
+                        <label class="dropdown-item" for="photo-upload-dock">
+                            <i class="fas fa-paperclip"></i> Attach files
+                            <input type="file" multiple id="photo-upload-dock"
+                                   class="upload__inputfile">
+                        </label>
+                    </div>
+                </div>
+                <button type="button" class="dock-icon-btn" id="emojiBtn" title="Emoji">
+                    <i class="fa-regular fa-face-smile"></i>
+                </button>
+                <button type="button" class="dock-icon-btn" id="stickerBtn" title="Stickers">
+                    <i class="fa-regular fa-images"></i>
+                </button>
+                <input type="text" id="input" placeholder="Write a message…" autocomplete="off">
+                <button class="send-btn" type="submit" title="Send">
+                    <i class="fa-solid fa-paper-plane"></i>
+                </button>
+                <div class="picker-panel" id="pickerPanel">
+                    <div class="picker-tabs">
+                        <button class="picker-tab active" data-tab="emoji">Emoji</button>
+                        <button class="picker-tab" data-tab="sticker">Stickers</button>
+                    </div>
+                    <div class="picker-body">
+                        <div class="picker-content active" id="emojiGrid"></div>
+                        <div class="picker-content" id="stickerGrid">
+                            <div class="sticker-placeholder">No stickers yet</div>
+                        </div>
+                    </div>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- ══ BOTTOM NAV ═════════════════════════════════════════════════════ -->
+    <nav class="bottom-nav" id="bottomNav">
+        <div class="nav-bg-slider" id="navBgSlider"></div>
+        <button class="nav-btn active" data-tab="chats" onclick="switchTab('chats')">
+            <span class="nav-btn-icon"><i class="fa-solid fa-comment-dots"></i></span>
+            <span class="nav-btn-label">Chats</span>
+        </button>
+        <button class="nav-btn" data-tab="contacts" onclick="switchTab('contacts')">
+            <span class="nav-btn-icon"><i class="fa-solid fa-address-book"></i></span>
+            <span class="nav-btn-label">Contacts</span>
+        </button>
+        <button class="nav-btn" data-tab="calls" onclick="switchTab('calls')">
+            <span class="nav-btn-icon"><i class="fa-solid fa-phone"></i></span>
+            <span class="nav-btn-label">Calls</span>
+        </button>
+        <button class="nav-btn" data-tab="profile" onclick="switchTab('profile')">
+            <span class="nav-btn-icon"><i class="fa-solid fa-user"></i></span>
+            <span class="nav-btn-label">Profile</span>
+        </button>
+    </nav>
+</div>
+
+<!-- ══ FIREBASE CLIENT SDK ════════════════════════════════════════════════ -->
+<script type="module">
+    import { initializeApp }  from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js'
+    import { getMessaging, getToken, onMessage } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-messaging.js'
+
+    const firebaseConfig = {
+        apiKey: "AIzaSyD_aHPsTnrOoTI1CrykPQmn6aKWJGgPy-c",
+        authDomain: "cado-a1b6d.firebaseapp.com",
+        projectId: "cado-a1b6d",
+        storageBucket: "cado-a1b6d.firebasestorage.app",
+        messagingSenderId: "148347344602",
+        appId: "1:148347344602:web:b3cac6acf3c812fd4a37e3",
+        measurementId: "G-S7ZCZ249ET"
+    }
+    const VAPID_KEY = "BAYa9b-6-9hTS82CEeFG1gM9ttl0vv5mtzkCkM7HwrBNitXXV1Cuc5AedkdpeXGY4yRKhtC_KwKkz19K8eXuXac"
+
+    const app = initializeApp(firebaseConfig)
+
+    function isIosDevice() {
+        return /iPad|iPhone|iPod/.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1)
+    }
+
+    function isStandaloneApp() {
+        return window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone === true
+    }
+
+    function isMessagingSupported() {
+        return (
+            typeof window !== 'undefined' &&
+            'serviceWorker' in navigator &&
+            'Notification' in window &&
+            'PushManager' in window &&
+            (location.protocol === 'https:' || location.hostname === 'localhost')
+        )
+    }
+
+    let messaging = null
+    if (isMessagingSupported()) {
+        try { messaging = getMessaging(app) }
+        catch (err) { console.warn('[FCM] getMessaging failed:', err.message) }
+    } else {
+        console.warn('[FCM] Push requires HTTPS and browser push support')
+    }
+
+    async function registerSW() {
+        if (!('serviceWorker' in navigator)) return null
+        try {
+            const existing = await navigator.serviceWorker.getRegistration('/')
+            if (existing) await existing.update()
+            const reg = existing || await navigator.serviceWorker.register('/firebase-messaging-sw.js', { scope: '/' })
+            console.log('[FCM] Service Worker ready:', reg.scope)
+            return reg
+        } catch (err) {
+            console.error('[FCM] SW registration failed:', err)
+            return null
+        }
+    }
+
+    function removePushPrompt() {
+        document.getElementById('pushPrompt')?.remove()
+    }
+
+    function showPushPrompt(username, mode = 'enable') {
+        removePushPrompt()
+
+        const isInstallHint = mode === 'install'
+        const prompt = document.createElement('div')
+        prompt.id = 'pushPrompt'
+        prompt.className = 'fcm-toast push-prompt'
+        prompt.innerHTML = `
+            <div class="fcm-toast-icon"><i class="fa-solid ${isInstallHint ? 'fa-mobile-screen-button' : 'fa-bell'}"></i></div>
+            <div class="fcm-toast-text">
+                <div class="fcm-toast-title">${isInstallHint ? 'Install Cado' : 'Enable notifications'}</div>
+                <div class="fcm-toast-body">${isInstallHint ? 'On iPhone/iPad, add Cado to Home Screen, open it there, then enable notifications.' : 'Get message and call alerts on this device.'}</div>
+            </div>
+            ${isInstallHint ? '' : '<button class="push-enable-btn" id="pushEnableBtn">Enable</button>'}
+            <button class="fcm-toast-close" id="pushCloseBtn"><i class="fa-solid fa-xmark"></i></button>`
+
+        document.body.appendChild(prompt)
+        document.getElementById('pushCloseBtn')?.addEventListener('click', removePushPrompt)
+        document.getElementById('pushEnableBtn')?.addEventListener('click', () => setupPush(username, true))
+    }
+
+    async function setupPush(username, fromUserAction = false) {
+        if (!username) return
+
+        if (window.NativeFCMToken) {
+            console.log('[FCM] Using native token from WebView bridge')
+            await saveFcmToken(username, window.NativeFCMToken)
+            return
+        }
+
+        if (isIosDevice() && !isStandaloneApp()) {
+            showPushPrompt(username, 'install')
+            return
+        }
+
+        if (!messaging) {
+            console.warn('[FCM] Skipping push setup - messaging not available')
+            return
+        }
+
+        try {
+            if (Notification.permission === 'default' && !fromUserAction) {
+                showPushPrompt(username)
+                return
+            }
+
+            const permission = Notification.permission === 'granted'
+                ? 'granted'
+                : await Notification.requestPermission()
+
+            if (permission !== 'granted') {
+                console.log('[FCM] Notification permission denied')
+                return
+            }
+
+            const swReg = await registerSW()
+            if (!swReg) return
+
+            const token = await getToken(messaging, {
+                vapidKey: VAPID_KEY,
+                serviceWorkerRegistration: swReg
+            })
+
+            if (token) {
+                console.log('[FCM] Token obtained')
+                await saveFcmToken(username, token)
+                if (window.socket) window.socket.emit('saveFcmToken', { username, token })
+                removePushPrompt()
+            }
+        } catch (err) {
+            console.error('[FCM] Push setup error:', err)
+            if (isIosDevice() && !isStandaloneApp()) showPushPrompt(username, 'install')
+        }
+    }
+
+    // Save token to server ───────────────────────────────────────────────
+    async function saveFcmToken(username, token) {
+        try {
+            const previousToken = localStorage.getItem('fcmToken')
+            const previousUsername = localStorage.getItem('fcmTokenUsername') || username
+            if (previousToken && previousToken !== token) {
+                await fetch('/fcm/token/remove', {
+                    method:  'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body:    JSON.stringify({ username: previousUsername, token: previousToken })
+                })
+            }
+
+            await fetch('/fcm/token', {
+                method:  'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body:    JSON.stringify({ username, token })
+            })
+            localStorage.setItem('fcmToken', token)
+            localStorage.setItem('fcmTokenUsername', username)
+            console.log('[FCM] Token saved to server')
+        } catch (err) {
+            console.error('[FCM] Failed to save token:', err)
+        }
+    }
+
+    // ── Foreground message handler ─────────────────────────────────────────
+    if (messaging) {
+        onMessage(messaging, (payload) => {
+            console.log('[FCM] Foreground message:', payload)
+            const data  = payload.data || {}
+            const notif = payload.notification || {}
+            if (data.type === 'call') return
+            const isChatOpen = window.CurrentRoom?.getName() === data.chatId
+            if (!isChatOpen) showToast(data.title || notif.title || 'New message', data.body || notif.body || '')
+        })
+    }
+
+    // ── In-app toast ──────────────────────────────────────────────────────
+    function showToast(title, body) {
+        const existing = document.getElementById('fcmToast')
+        if (existing) existing.remove()
+        const toast = document.createElement('div')
+        toast.id = 'fcmToast'
+        toast.className = 'fcm-toast'
+        toast.innerHTML = `
+            <div class="fcm-toast-icon"><i class="fa-solid fa-message"></i></div>
+            <div class="fcm-toast-text">
+                <div class="fcm-toast-title">${title}</div>
+                <div class="fcm-toast-body">${body}</div>
+            </div>
+            <button class="fcm-toast-close" onclick="this.parentElement.remove()">
+                <i class="fa-solid fa-xmark"></i>
+            </button>`
+        document.body.appendChild(toast)
+        setTimeout(() => toast?.remove(), 5000)
+    }
+
+    // ── Service worker messages (notification clicks) ─────────────────────
+    navigator.serviceWorker?.addEventListener('message', (event) => {
+        const { type, data, action } = event.data || {}
+        if (type === 'NOTIFICATION_CLICK') {
+            if (data?.chatId) {
+                const btn = document.querySelector(`button[data-room="${data.chatId}"]`)
+                if (btn) btn.click()
+            }
+        }
+        if (type === 'CALL_DECLINED_FROM_NOTIFICATION') {
+            if (window.declineCall) declineCall()
+        }
+    })
+
+    window.__setupFCMPush = setupPush
+</script>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.1/dist/js/bootstrap.bundle.min.js"
+        integrity="sha384-HwwvtgBNo3bZJJLYd8oVXjrBZt8cqVSpeBNS5n7C8IVInixGAoxmnlMuBnhbgrkm"
+        crossorigin="anonymous"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.7.1/jquery.min.js"
+        integrity="sha512-v2CJ7UaYy4JwqLDIrZUI/4hqeoQieOmAZNXBeQyjo21dadnwR+8ZaIJVT8EE2iyI61OV8e6M8PP2/4hpQINQ/g=="
+        crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+<script src="/socket.io/socket.io.js"></script>
+<script src="Client.js"></script>
+<script src="options.js"></script>
+<script src="UserObj.js"></script>
+
+<script>
+    /* ═══════════════════════════════════════════════════════════════
+       STATUS SYSTEM
+    ════════════════════════════════════════════════════════════════ */
+    const userStatus = {}
+
+    function formatLastSeen(date) {
+        if (!date) return 'Last seen a long time ago'
+        const now  = new Date()
+        const diff = Math.floor((now - date) / 1000)
+        if (diff < 30)   return 'Last seen just now'
+        if (diff < 60)   return `Last seen ${diff} seconds ago`
+        if (diff < 120)  return 'Last seen 1 minute ago'
+        if (diff < 3600) return `Last seen ${Math.floor(diff / 60)} minutes ago`
+        if (diff < 7200) return 'Last seen 1 hour ago'
+        const isYesterday = date.getDate() === now.getDate() - 1 &&
+            date.getMonth() === now.getMonth() && date.getFullYear() === now.getFullYear()
+        const h = String(date.getHours()).padStart(2,'0')
+        const m = String(date.getMinutes()).padStart(2,'0')
+        if (isYesterday) return `Last seen yesterday at ${h}:${m}`
+        const months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec']
+        return `Last seen ${months[date.getMonth()]} ${date.getDate()}, ${h}:${m}`
+    }
+
+    function updateStatusLabel(username, state) {
+        if (!username || Interlocutor.getUsername() !== username) return
+        const dot  = document.getElementById('statusDot')
+        const text = document.getElementById('statusText')
+        if (!dot || !text) return
+        if (state === 'typing') {
+            dot.className = 'status-dot typing'
+            text.className = 'status-typing-text'
+            text.textContent = 'Typing...'
+        } else if (state === 'online') {
+            dot.className = 'status-dot online'
+            text.className = ''
+            text.textContent = 'Online'
+        } else {
+            const info = userStatus[username]
+            dot.className = 'status-dot offline'
+            text.className = ''
+            text.textContent = formatLastSeen(info?.lastSeen || null)
+        }
+        const chatItem = document.querySelector(`#iconList button[data-username="${username}"]`)
+        if (chatItem) {
+            let dot = chatItem.querySelector('.chat-status-dot')
+            if (!dot) {
+                dot = document.createElement('span')
+                dot.classList.add('chat-status-dot')
+                chatItem.querySelector('.chat-item-avatar').appendChild(dot)
+            }
+            dot.className = 'chat-status-dot ' + (state === 'offline' ? 'offline' : 'online')
+        }
+    }
+
+    /* ═══════════════════════════════════════════════════════════════
+       LAYOUT — sidebar ↔ chat header
+    ═══════════════════════════════════════════════════════════════ */
+    const appShell = document.getElementById('appShell')
+    const tabViews = document.getElementById('tabViews')
+    const bottomNav = document.getElementById('bottomNav')
+
+    async function enterChatMode(username) {
+        _lastChatUser = username
+        appShell.classList.add('chat-open')
+        tabViews.classList.add('hidden')
+        bottomNav.classList.add('hidden')
+        updateChatHeader(username)
+        socket.emit('getStatus', { username })
+        await applyChatCfg()
+    }
+
+    function exitChatMode() {
+        appShell.classList.remove('chat-open')
+        tabViews.classList.remove('hidden')
+        bottomNav.classList.remove('hidden')
+        // Restore main tab panes display
+        document.querySelectorAll('.tab-views > .tab-pane').forEach(p => p.style.display = '')
+        // Clear message tab states
+        document.querySelectorAll('#TabList .tab-pane.show.active').forEach(p => p.classList.remove('show','active'))
+        document.querySelectorAll('button[data-bs-toggle="tab"].active').forEach(b => b.classList.remove('active'))
+        Interlocutor.setUsername(null)
+        CurrentRoom.SetName(null)
+    }
+
+    document.getElementById('topbarBack').addEventListener('click', exitChatMode)
+
+    // ── Tab Switching ────────────────────────────────────────────────────────
+    function switchTab(tab) {
+        document.querySelectorAll('.tab-pane.active').forEach(p => p.classList.remove('active'))
+        document.querySelectorAll('.nav-btn.active').forEach(b => b.classList.remove('active'))
+        document.getElementById('pane' + tab.charAt(0).toUpperCase() + tab.slice(1)).classList.add('active')
+        const btn = document.querySelector(`.nav-btn[data-tab="${tab}"]`)
+        btn.classList.add('active')
+        const slider = document.getElementById('navBgSlider')
+        if (slider) slider.style.left = btn.offsetLeft + 'px'
+        if (tab === 'contacts') renderContactsTab()
+        if (tab === 'calls') renderCallsTab()
+        if (tab === 'profile') renderProfileTab()
+    }
+
+    // ── Contacts Tab ─────────────────────────────────────────────────────────
+    function renderContactsTab() {
+        fetch('/profile/contacts/list')
+            .then(r => r.json())
+            .then(data => {
+                const list = document.getElementById('contactsTabList')
+                const contacts = data.contacts || []
+                if (contacts.length === 0) {
+                    list.innerHTML = '<div class="list-empty"><i class="fa-solid fa-address-book"></i><p>No contacts yet</p></div>'
+                    return
+                }
+                list.innerHTML = contacts.map(c => {
+                    const name = [c.firstName, c.lastName].filter(Boolean).join(' ') || c.username
+                    const initial = (c.firstName || c.username).charAt(0).toUpperCase()
+                    const avatar = c.avatar ? `<img src="/uploads/${c.avatar}" alt="${name}">` : ''
+                    return `<li class="contact-item" onclick="OpenChat('${c.username}')">
+                    <div class="contact-item-avatar">
+                        ${avatar || `<div class="avatar-fallback-sm">${initial}</div>`}
+                        <span class="contact-online" style="${c.isOnline ? '' : 'display:none;'}"></span>
+                    </div>
+                    <div class="contact-item-info">
+                        <span class="contact-item-name">${name}</span>
+                        <span class="contact-item-uname">@${c.username}</span>
+                    </div>
+                </li>`
+                }).join('')
+            })
+            .catch(() => {})
+    }
+
+    function filterContacts(query) {
+        const items = document.querySelectorAll('#contactsTabList .contact-item')
+        items.forEach(item => {
+            const name = item.querySelector('.contact-item-name').textContent.toLowerCase()
+            item.style.display = name.includes(query.toLowerCase()) ? 'flex' : 'none'
+        })
+    }
+
+    // ── Calls Tab ────────────────────────────────────────────────────────────
+    function renderCallsTab() {
+        fetch('/calls/history')
+            .then(r => r.json())
+            .then(data => {
+                const list = document.getElementById('callsTabList')
+                const calls = data.calls || []
+                if (calls.length === 0) {
+                    list.innerHTML = '<div class="list-empty"><i class="fa-solid fa-phone"></i><p>No calls yet</p></div>'
+                    return
+                }
+                list.innerHTML = calls.map(c => {
+                    const isOutgoing = c.caller === CurrentUser.getUsername()
+                    const icon = isOutgoing ? 'fa-phone-volume' : 'fa-phone'
+                    const iconRotated = isOutgoing ? '' : 'style="transform:scaleX(-1)"'
+                    const label = c.status === 'ended' ? (isOutgoing ? 'Outgoing' : 'Incoming') : c.status === 'declined' ? 'Declined' : 'Missed'
+                    const duration = c.duration ? Math.floor(c.duration / 60) + 'm ' + (c.duration % 60) + 's' : ''
+                    const date = new Date(c.created_at).toLocaleDateString()
+                    const initial = (c.displayName || c.otherUser).charAt(0).toUpperCase()
+                    return `<li class="call-item" onclick="OpenChat('${c.otherUser}')">
+                    <div class="call-item-avatar">
+                        <div class="avatar-fallback-sm">${initial}</div>
+                    </div>
+                    <div class="call-item-info">
+                        <span class="call-item-name">${c.displayName || c.otherUser}</span>
+                        <span class="call-item-meta ${c.status === 'missed' ? 'missed' : ''}">
+                            <i class="fa-solid ${icon}" ${iconRotated}></i> ${label}${duration ? ' · ' + duration : ''}
+                        </span>
+                    </div>
+                    <span class="call-item-date">${date}</span>
+                </li>`
+                }).join('')
+            })
+            .catch(() => {})
+    }
+
+    // ── Profile Tab ──────────────────────────────────────────────────────────
+    function renderProfileTab() {
+        const container = document.getElementById('profileTabContent')
+        container.innerHTML = '<div class="list-empty"><div class="spinner"></div></div>'
+
+        Promise.all([
+            fetch('/profile/api/me').then(r => r.json()),
+            fetch('/profile/contacts/list').then(r => r.json())
+        ])
+            .then(([userInfo, contactsData]) => {
+                if (!userInfo) return
+                const fullName = [userInfo.firstName, userInfo.lastName].filter(Boolean).join(' ') || userInfo.username
+                const avatarSrc = userInfo.avatar ? '/uploads/' + userInfo.avatar : null
+                const initial = (userInfo.firstName || userInfo.username).charAt(0).toUpperCase()
+                const contacts = (contactsData.contacts || []).map(c => {
+                    const cName = [c.firstName, c.lastName].filter(Boolean).join(' ') || c.username
+                    const cInit = (c.firstName || c.username).charAt(0).toUpperCase()
+                    const cAvatar = c.avatar ? `<img src="/uploads/${c.avatar}" alt="${cName}">` : ''
+                    return `<a class="profile-contact-item" href="/profile/${c.username}">
+                <div class="profile-contact-avatar">
+                    ${cAvatar || `<div class="profile-avatar-fallback" style="width:40px;height:40px;font-size:16px;">${cInit}</div>`}
+                    <span class="profile-contact-online" style="${c.isOnline ? '' : 'display:none;'}"></span>
+                </div>
+                <div class="profile-contact-info">
+                    <span class="profile-contact-name">${cName}</span>
+                    <span class="profile-contact-uname">@${c.username}</span>
+                </div>
+            </a>`
+                }).join('')
+
+                container.innerHTML = `
+            <div class="profile-hero">
+                <div class="profile-avatar-wrap" onclick="document.getElementById('tabAvatarZoom').style.display='flex'" style="cursor:pointer;">
+                    ${avatarSrc
+                    ? `<img src="${avatarSrc}" class="profile-avatar-img" alt="${fullName}">`
+                    : `<div class="profile-avatar-fallback">${initial}</div>`
+                }
+                    <span class="profile-online-dot"></span>
+                    <div class="profile-avatar-overlay"><i class="fa-solid fa-search-plus"></i></div>
+                </div>
+                <p class="profile-full-name">${fullName}</p>
+                <p class="profile-username">@${userInfo.username}</p>
+                <div class="profile-meta-row">
+                    ${userInfo.isOnline
+                    ? '<span><i class="fa-solid fa-circle" style="color:#22C55E;font-size:8px;margin-right:4px;"></i> Online</span>'
+                    : '<span>Offline' + (userInfo.lastSeen ? ' · last seen ' + new Date(userInfo.lastSeen).toLocaleString() : '') + '</span>'
+                }
+                </div>
+            </div>
+
+            <div class="profile-actions">
+                <a href="/profile/edit" class="profile-action-btn primary">
+                    <i class="fa-solid fa-pen"></i> Edit Profile
+                </a>
+                <button class="profile-action-btn secondary" onclick="navigator.clipboard.writeText('${userInfo.username}');this.innerHTML='<i class=fa-solid fa-check></i> Copied';setTimeout(()=>renderProfileTab(),1200)">
+                    <i class="fa-solid fa-link"></i> Share
+                </button>
+            </div>
+
+            <div class="profile-info-section">
+                <div class="profile-info-row">
+                    <div class="profile-info-icon"><i class="fa-solid fa-quote-left"></i></div>
+                    <div class="profile-info-content">
+                        <span class="profile-info-label">About</span>
+                        <span class="profile-info-value">${userInfo.about || 'No bio yet.'}</span>
+                    </div>
+                </div>
+                <div class="profile-info-row">
+                    <div class="profile-info-icon"><i class="fa-solid fa-lock"></i></div>
+                    <div class="profile-info-content">
+                        <span class="profile-info-label">Security</span>
+                        <span class="profile-info-value"><a href="/profile/password" style="color:var(--primary-color);text-decoration:none;">Change password</a></span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="profile-section-header">
+                <i class="fa-solid fa-address-book"></i> Contacts
+                <span class="profile-section-badge">${contacts.length ? contactsData.contacts.length : 0}</span>
+            </div>
+            <div class="profile-contacts-list" style="margin-bottom:16px;">
+                ${contacts || '<div class="profile-contacts-empty"><i class="fa-solid fa-users"></i><p>No contacts yet</p><span>Add contacts from chat profiles</span></div>'}
+            </div>
+
+            <div class="profile-section-header" style="margin-top:8px;">
+                <i class="fa-solid fa-palette"></i> Chat Appearance
+                <span class="profile-section-badge" id="chatCfgLabel" style="font-size:10px;">${_lastChatUser ? 'for ' + _lastChatUser : 'no chat selected'}</span>
+            </div>
+            <div class="profile-info-section" style="margin-bottom:16px;">
+                <div id="chatCfgInner">Loading…</div>
+            </div>
+
+            <div class="profile-danger-zone">
+                <span class="profile-danger-title">Account</span>
+                <form action="/profile/delete" method="POST" onsubmit="return confirm('Delete your account permanently? This cannot be undone.');">
+                    <button type="submit" class="profile-danger-btn">
+                        <i class="fa-solid fa-trash"></i> Delete Account
+                    </button>
+                </form>
+            </div>
+
+            <div style="padding:12px 20px 24px;">
+                <a href="/logout" style="display:flex;align-items:center;gap:8px;color:var(--text-secondary);text-decoration:none;font-size:13px;font-weight:500;">
+                    <i class="fa-solid fa-arrow-right-from-bracket"></i> Log out
+                </a>
+            </div>
+
+            <div class="profile-avatar-zoom" id="tabAvatarZoom" style="display:none;" onclick="this.style.display='none'">
+                <div class="profile-avatar-zoom-content">
+                    ${avatarSrc
+                    ? `<img src="${avatarSrc}" alt="Avatar">`
+                    : `<div class="profile-avatar-fallback" style="width:200px;height:200px;font-size:72px;border:none;box-shadow:none;">${initial}</div>`
+                }
+                </div>
+            </div>
+        `
+                renderChatCfgPanel(document.getElementById('chatCfgInner')).catch(function(){})
+            })
+            .catch(() => {
+                container.innerHTML = '<div class="list-empty"><i class="fa-solid fa-exclamation-triangle"></i><p>Failed to load</p></div>'
+            })
+    }
+
+    // ── Chats Filter ─────────────────────────────────────────────────────────
+    function filterChats(query) {
+        const items = document.querySelectorAll('#iconList li')
+        items.forEach(item => {
+            const name = item.querySelector('.name')?.textContent?.toLowerCase() || ''
+            item.style.display = name.includes(query.toLowerCase()) ? '' : 'none'
+        })
+    }
+
+    function updateChatHeader(username) {
+        const header   = document.getElementById('chatHeader')
+        const avatarEl = document.getElementById('headerAvatar')
+        const nameEl   = document.getElementById('headerName')
+        if (!username) { header.style.display = 'none'; return }
+        const displayName = typeof getDisplayName === 'function' ? getDisplayName(username) : String(username).split('@')[0]
+        header.style.display = 'flex'
+        nameEl.textContent = displayName
+        const tabImg = document.querySelector(`#iconList button[data-username="${username}"] img.user-avatar`)
+        if (tabImg && tabImg.getAttribute('src')) {
+            avatarEl.innerHTML = `<img src="${tabImg.getAttribute('src')}" alt="${displayName}">`
+        } else {
+            avatarEl.textContent = displayName.charAt(0).toUpperCase()
+        }
+        const info = userStatus[username]
+        updateStatusLabel(username, info?.online ? 'online' : 'offline')
+    }
+
+    /* ═══════════════════════════════════════════════════════════════
+       TYPING
+    ════════════════════════════════════════════════════════════════ */
+    let typingTimer = null
+    const input = document.getElementById('input')
+
+    input.addEventListener('input', () => {
+        if (!Interlocutor.getUsername() || !CurrentRoom.getName()) return
+        socket.emit('typing', { room: CurrentRoom.getName(), sender: CurrentUser.getUsername(), receiver: Interlocutor.getUsername() })
+        clearTimeout(typingTimer)
+        typingTimer = setTimeout(() => {
+            socket.emit('stopTyping', { room: CurrentRoom.getName(), sender: CurrentUser.getUsername(), receiver: Interlocutor.getUsername() })
+        }, 2000)
+    })
+
+    /* ═══════════════════════════════════════════════════════════════
+       CHAT CUSTOMISATION — per-user settings
+    ═════════════════════════════════════════════════════════════════ */
+    // ── local cache + last chat user (survives exitChatMode) ───────────────────
+    var _chatCfgCache = {}
+    var _lastChatUser = null
+
+    function chatId() {
+        if (CurrentRoom && CurrentRoom.getName()) return CurrentRoom.getName()
+        if (_lastChatUser) return CurrentUser.getUsername() + '!@!@2@!@!' + _lastChatUser
+        return null
+    }
+
+    function peerUsername() { return _lastChatUser }
+
+    function chatCfgStorageKey(cid) {
+        return 'chatCfg_' + CurrentUser.getUsername() + '_' + cid
+    }
+
+    function defaultChatConfig() {
+        return {
+            font: "'Inter', sans-serif",
+            bubbleStyle: 'modern',
+            fontSize: '14',
+            sentColor: '#1A3A5C',
+            receivedColor: '#21262D',
+            bgColor: '',
+            bgImage: '',
+        }
+    }
+
+    function normalizeHexColor(value, fallback) {
+        value = String(value || '')
+        return /^#[0-9a-fA-F]{6}$/.test(value) ? value : fallback
+    }
+
+    function normalizeChatConfig(config) {
+        var base = defaultChatConfig()
+        config = config || {}
+        return {
+            font: config.font || base.font,
+            bubbleStyle: ['modern','rounded','square','pill'].includes(config.bubbleStyle) ? config.bubbleStyle : base.bubbleStyle,
+            fontSize: String(Math.min(20, Math.max(12, Number(config.fontSize) || 14))),
+            sentColor: normalizeHexColor(config.sentColor, base.sentColor),
+            receivedColor: normalizeHexColor(config.receivedColor, base.receivedColor),
+            bgColor: normalizeHexColor(config.bgColor, ''),
+            bgImage: String(config.bgImage || ''),
+        }
+    }
+
+    async function loadChatConfig() {
+        var cid = chatId()
+        if (!cid) { _chatCfgCache = defaultChatConfig(); return _chatCfgCache }
+
+        try {
+            var r = await fetch('/api/chat-cfg/' + encodeURIComponent(cid), { credentials: 'include' })
+            if (r.ok) {
+                var d = await r.json()
+                if (d.config && Object.keys(d.config).length > 0) {
+                    _chatCfgCache = normalizeChatConfig(d.config)
+                    try { localStorage.setItem(chatCfgStorageKey(cid), JSON.stringify(_chatCfgCache)) } catch(e) {}
+                    return _chatCfgCache
+                }
+            }
+        } catch(e) {}
+
+        try {
+            var personal = localStorage.getItem(chatCfgStorageKey(cid))
+            if (personal) { _chatCfgCache = normalizeChatConfig(JSON.parse(personal)); return _chatCfgCache }
+
+            var legacy = localStorage.getItem('chatCfg_' + cid)
+            if (legacy) { _chatCfgCache = normalizeChatConfig(JSON.parse(legacy)); return _chatCfgCache }
+        } catch(e) {}
+
+        _chatCfgCache = defaultChatConfig()
+        return _chatCfgCache
+    }
+
+    async function persistChatCfg() {
+        var cid = chatId()
+        if (!cid) return { ok: false }
+        var response = await fetch('/api/chat-cfg/save', {
+            method: 'POST',
+            credentials: 'include',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ chatId: cid, config: _chatCfgCache })
+        })
+        if (!response.ok) throw new Error('Failed to save chat appearance')
+        var data = await response.json().catch(function(){ return {} })
+        if (data.config) _chatCfgCache = normalizeChatConfig(data.config)
+        try { localStorage.setItem(chatCfgStorageKey(cid), JSON.stringify(_chatCfgCache)) } catch(e) {}
+        return data
+    }
+
+    function cssUrl(value) {
+        return 'url("' + String(value || '').replace(/\\/g, '\\\\').replace(/"/g, '\\"') + '")'
+    }
+
+    function applyCfgFromCache() {
+        var cfg = normalizeChatConfig(_chatCfgCache)
+        _chatCfgCache = cfg
+        var r = document.documentElement.style
+
+        r.setProperty('--chat-font-family', cfg.font)
+        r.setProperty('--font-size', cfg.fontSize + 'px')
+
+        var radius = '14px'
+        if (cfg.bubbleStyle === 'rounded') radius = '22px'
+        else if (cfg.bubbleStyle === 'square') radius = '6px'
+        else if (cfg.bubbleStyle === 'pill') radius = '999px'
+        r.setProperty('--message-radius', radius)
+
+        r.setProperty('--bubble-sent-bg', cfg.sentColor)
+        r.setProperty('--bubble-received-bg', cfg.receivedColor)
+        r.setProperty('--bubble-sent', cfg.sentColor)
+        r.setProperty('--bubble-received', cfg.receivedColor)
+
+        if (cfg.bgImage) {
+            r.setProperty('--chat-bg-image', cssUrl(cfg.bgImage))
+            r.setProperty('--chat-bg', 'transparent')
+        } else if (cfg.bgColor) {
+            r.setProperty('--chat-bg-image', 'none')
+            r.setProperty('--chat-bg', cfg.bgColor)
+        } else {
+            r.setProperty('--chat-bg-image', 'none')
+            r.setProperty('--chat-bg', 'transparent')
+        }
+    }
+
+    async function applyChatCfg() {
+        await loadChatConfig()
+        applyCfgFromCache()
+    }
+
+    function readChatCfgForm(scope) {
+        var s = function(id) { return (scope ? scope.querySelector('#' + id) : null) || document.getElementById(id) }
+        var bgMode = s('cfgBgMode')?.value || 'color'
+        var imageValue = s('cfgBgImage')?.value || ''
+        var colorValue = s('cfgBgColor')?.value || ''
+
+        var raw = normalizeChatConfig({
+            font: s('cfgFont')?.value,
+            bubbleStyle: s('cfgBubbleStyle')?.value,
+            fontSize: s('cfgFontSize')?.value,
+            sentColor: s('cfgSentColor')?.value,
+            receivedColor: s('cfgReceivedColor')?.value,
+            bgColor: bgMode === 'color' ? colorValue : '',
+            bgImage: bgMode === 'image' ? imageValue : '',
+        })
+        if (bgMode === 'none') {
+            raw.bgColor = ''
+            raw.bgImage = ''
+        }
+        return raw
+    }
+
+    async function applyAndSaveChatCfg(scope) {
+        if (!chatId()) return false
+        var previous = _chatCfgCache
+        _chatCfgCache = readChatCfgForm(scope)
+        try {
+            await persistChatCfg()
+            applyCfgFromCache()
+            return true
+        } catch (error) {
+            _chatCfgCache = previous
+            applyCfgFromCache()
+            throw error
+        }
+    }
+
+    function closeChatCfgPanel() {
+        var p = document.getElementById('ChatCfgPanel')
+        if (!p) return
+        p.classList.remove('open')
+        applyChatCfg().catch(function(){})
+        setTimeout(function() { if (p.parentNode) p.parentNode.removeChild(p) }, 380)
+    }
+
+    function openChatCfgPanel() {
+        var existing = document.getElementById('ChatCfgPanel')
+        if (existing) { closeChatCfgPanel(); return }
+
+        var panel = document.createElement('div')
+        panel.className = 'panel'
+        panel.id = 'ChatCfgPanel'
+        panel.innerHTML =
+            '<div class="profile-panel-header">' +
+            '<button class="profile-close-btn" onclick="closeChatCfgPanel()"><i class="fa-solid fa-chevron-down"></i></button>' +
+            '<span class="profile-panel-title">Chat Appearance</span>' +
+            '<div style="width:36px;"></div>' +
+            '</div>' +
+            '<div class="profile-info-section" style="margin:0 16px 16px;border:none;background:transparent;">' +
+            '<div id="chatCfgInner">Loading...</div>' +
+            '</div>'
+
+        document.body.appendChild(panel)
+        requestAnimationFrame(function() { panel.classList.add('open') })
+        renderChatCfgPanel(panel.querySelector('#chatCfgInner'))
+    }
+
+    async function saveChatCfgButton(button) {
+        var scope = button.closest('.panel') || button.closest('.profile-info-section') || document
+        var original = button.innerHTML
+        button.disabled = true
+        button.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Saving'
+        try {
+            await applyAndSaveChatCfg(scope)
+            button.innerHTML = '<i class="fa-solid fa-check"></i> Saved'
+        } catch(e) {
+            console.error(e)
+            button.innerHTML = '<i class="fa-solid fa-triangle-exclamation"></i> Failed'
+        } finally {
+            setTimeout(function(){ button.disabled = false; button.innerHTML = original }, 1400)
+        }
+    }
+
+    function setCfgBgColor(color, scope) {
+        var s = scope || document
+        var picker = s.querySelector('#cfgBgColor')
+        var mode = s.querySelector('#cfgBgMode')
+        var image = s.querySelector('#cfgBgImage')
+        var label = s.querySelector('#bgFileDisplay')
+        if (picker) picker.value = color
+        if (mode) mode.value = 'color'
+        if (image) image.value = ''
+        if (label) label.textContent = 'Color set'
+        applyCfgPreview(s)
+    }
+
+    function resetCfgBg(scope) {
+        var s = scope || document
+        var mode = s.querySelector('#cfgBgMode')
+        var image = s.querySelector('#cfgBgImage')
+        var label = s.querySelector('#bgFileDisplay')
+        if (mode) mode.value = 'none'
+        if (image) image.value = ''
+        if (label) label.textContent = ''
+        applyCfgPreview(scope)
+    }
+
+    function setCfgBubbleColor(kind, color, scope) {
+        var s = scope || document
+        var inputId = kind === 'sent' ? 'cfgSentColor' : 'cfgReceivedColor'
+        var input = s.querySelector('#' + inputId)
+        if (!input) return
+        input.value = color
+        s.querySelectorAll('[data-cfg-bubble="' + kind + '"]').forEach(function(button) {
+            button.classList.toggle('selected', button.dataset.color === color)
+            button.setAttribute('aria-pressed', button.dataset.color === color ? 'true' : 'false')
+        })
+        applyCfgPreview(s)
+    }
+
+    function applyCfgPreview(scope) {
+        var s = scope || document
+        var preview = s.querySelector('.chat-cfg-preview')
+        if (!preview) return
+
+        var cfg = readChatCfgForm(s)
+        var radius = '14px'
+        if (cfg.bubbleStyle === 'rounded') radius = '22px'
+        else if (cfg.bubbleStyle === 'square') radius = '6px'
+        else if (cfg.bubbleStyle === 'pill') radius = '999px'
+
+        preview.style.setProperty('--cfg-preview-font', cfg.font)
+        preview.style.setProperty('--cfg-preview-font-size', cfg.fontSize + 'px')
+        preview.style.setProperty('--cfg-preview-radius', radius)
+        preview.style.setProperty('--cfg-preview-sent-bg', cfg.sentColor)
+        preview.style.setProperty('--cfg-preview-received-bg', cfg.receivedColor)
+        preview.style.setProperty('--cfg-preview-bg', cfg.bgColor || 'var(--panel-color)')
+        preview.style.setProperty('--cfg-preview-bg-image', cfg.bgImage ? cssUrl(cfg.bgImage) : 'none')
+    }
+
+    async function handleCfgBgFile(input) {
+        var file = input.files && input.files[0]
+        if (!file) return
+        var scope = input.closest('.panel') || input.closest('.profile-info-section') || document
+        var label = scope.querySelector('#bgFileDisplay')
+        if (label) label.textContent = 'Uploading...'
+
+        var data = new FormData()
+        data.append('files', file)
+        try {
+            var response = await fetch('/chat_upload', { method: 'POST', body: data })
+            if (!response.ok) throw new Error('Upload failed')
+            var result = await response.json()
+            var filename = result.files && result.files[0]
+            if (!filename) throw new Error('Upload failed')
+            scope.querySelector('#cfgBgImage').value = '/uploads/' + filename
+            scope.querySelector('#cfgBgMode').value = 'image'
+            if (label) label.textContent = file.name
+            applyCfgPreview(scope)
+        } catch(e) {
+            console.error(e)
+            if (label) label.textContent = 'Upload failed'
+        } finally {
+            input.value = ''
+        }
+    }
+
+    async function renderChatCfgPanel(container) {
+        var cfg = await loadChatConfig()
+        var who = peerUsername()
+        var lbl = document.getElementById('chatCfgLabel')
+        if (lbl) lbl.textContent = who ? 'for ' + (typeof getDisplayName === 'function' ? getDisplayName(who) : who) : 'no chat selected'
+        var inner = container || document.getElementById('chatCfgInner')
+        if (!inner) return
+        if (!chatId() || !who) {
+            inner.innerHTML = '<div class="profile-info-content" style="padding:14px 16px;"><span class="profile-info-value" style="color:var(--text-muted);font-size:13px;">Open a chat first to customize its appearance.</span></div>'
+            return
+        }
+
+        var fonts = ["'Inter', sans-serif", "'Roboto', sans-serif", "'Nunito', sans-serif", "'Noto Sans', sans-serif", 'system-ui, sans-serif']
+        var styles = ['modern','rounded','square','pill']
+        var bgMode = cfg.bgImage ? 'image' : (cfg.bgColor ? 'color' : 'none')
+        var bgColor = cfg.bgColor || '#0D1117'
+        var presets = ['#0D1117','#1A1B2E','#1B2A1E','#2D1B1B','#1B2D2B','#2C1B2D','#1C1C1C','#1E2A3A']
+        var bubblePresets = [
+            ['Blue', '#3B82F6'], ['Sky', '#0EA5E9'], ['Cyan', '#06B6D4'], ['Emerald', '#10B981'],
+            ['Green', '#22C55E'], ['Lime', '#84CC16'], ['Amber', '#F59E0B'], ['Orange', '#F97316'],
+            ['Red', '#EF4444'], ['Rose', '#F43F5E'], ['Pink', '#EC4899'], ['Purple', '#8B5CF6'],
+            ['Violet', '#7C3AED'], ['Brown', '#A16207'], ['Slate', '#475569'], ['Charcoal', '#334155']
+        ]
+
+        inner.innerHTML = `
+      <div class="chat-cfg-preview">
+        <div class="chat-cfg-preview-bubble received">Incoming message preview</div>
+        <div class="chat-cfg-preview-bubble sent">Your message preview</div>
+      </div>
+      <div class="profile-info-row">
+        <div class="profile-info-icon"><i class="fa-solid fa-font"></i></div>
+        <div class="profile-info-content" style="flex:1;">
+          <span class="profile-info-label">Font</span>
+          <select id="cfgFont" style="width:100%;background:var(--panel-color);color:var(--text-color);border:1px solid var(--border-strong);border-radius:8px;padding:8px 10px;font-size:13px;outline:none;">
+            ${fonts.map(function(f) { return '<option value="' + f + '"' + (cfg.font === f ? ' selected' : '') + '>' + f.replace(/,?\s*sans-serif/g,'').replace(/'/g,'') + '</option>' }).join('')}
+          </select>
+        </div>
+      </div>
+      <div class="profile-info-row">
+        <div class="profile-info-icon"><i class="fa-solid fa-comment"></i></div>
+        <div class="profile-info-content" style="flex:1;">
+          <span class="profile-info-label">Bubble Style</span>
+          <select id="cfgBubbleStyle" style="width:100%;background:var(--panel-color);color:var(--text-color);border:1px solid var(--border-strong);border-radius:8px;padding:8px 10px;font-size:13px;outline:none;">
+            ${styles.map(function(s) { return '<option value="' + s + '"' + (cfg.bubbleStyle === s ? ' selected' : '') + '>' + s.charAt(0).toUpperCase() + s.slice(1) + '</option>' }).join('')}
+          </select>
+        </div>
+      </div>
+      <div class="profile-info-row">
+        <div class="profile-info-icon"><i class="fa-solid fa-text-height"></i></div>
+        <div class="profile-info-content" style="flex:1;">
+          <span class="profile-info-label">Font Size</span>
+          <div style="display:flex;align-items:center;gap:10px;">
+            <input type="range" id="cfgFontSize" min="12" max="20" value="${cfg.fontSize}" oninput="this.nextElementSibling.textContent=this.value" style="flex:1;-webkit-appearance:none;height:4px;border-radius:2px;background:var(--border-strong);outline:none;">
+            <span id="cfgFontSizeVal" style="font-size:14px;color:var(--text-secondary);min-width:28px;text-align:center;font-weight:600;">${cfg.fontSize}</span>
+          </div>
+        </div>
+      </div>
+      <div class="profile-info-row">
+        <div class="profile-info-icon"><i class="fa-solid fa-paint-brush"></i></div>
+        <div class="profile-info-content" style="flex:1;">
+          <span class="profile-info-label">Bubble Colors</span>
+          <input type="hidden" id="cfgSentColor" value="${cfg.sentColor}">
+          <input type="hidden" id="cfgReceivedColor" value="${cfg.receivedColor}">
+          <div class="chat-cfg-color-group">
+            <span class="chat-cfg-color-label">Sent</span>
+            <div class="chat-cfg-bubble-swatches">
+              ${bubblePresets.map(function(p) { return '<button type="button" class="chat-cfg-bubble-swatch' + (cfg.sentColor === p[1] ? ' selected' : '') + '" style="background:' + p[1] + ';" data-cfg-bubble="sent" data-color="' + p[1] + '" aria-label="Sent: ' + p[0] + '" aria-pressed="' + (cfg.sentColor === p[1]) + '" title="' + p[0] + ' ' + p[1] + '" onclick="setCfgBubbleColor(\'sent\',\'' + p[1] + '\',this.closest(\'.panel\')||this.closest(\'.profile-info-section\')||document)"></button>' }).join('')}
+            </div>
+          </div>
+          <div class="chat-cfg-color-group">
+            <span class="chat-cfg-color-label">Received</span>
+            <div class="chat-cfg-bubble-swatches">
+              ${bubblePresets.map(function(p) { return '<button type="button" class="chat-cfg-bubble-swatch' + (cfg.receivedColor === p[1] ? ' selected' : '') + '" style="background:' + p[1] + ';" data-cfg-bubble="received" data-color="' + p[1] + '" aria-label="Received: ' + p[0] + '" aria-pressed="' + (cfg.receivedColor === p[1]) + '" title="' + p[0] + ' ' + p[1] + '" onclick="setCfgBubbleColor(\'received\',\'' + p[1] + '\',this.closest(\'.panel\')||this.closest(\'.profile-info-section\')||document)"></button>' }).join('')}
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="profile-info-row" style="border-bottom:none;">
+        <div class="profile-info-icon"><i class="fa-solid fa-image"></i></div>
+        <div class="profile-info-content" style="flex:1;">
+          <span class="profile-info-label">Chat Background</span>
+          <input type="hidden" id="cfgBgMode" value="${bgMode}">
+          <input type="hidden" id="cfgBgImage" value="${cfg.bgImage || ''}">
+          <div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:4px;">
+            <button class="profile-action-btn secondary" style="padding:4px 12px;font-size:11px;" onclick="var p=this.closest('.panel')||this.closest('.profile-info-section')||document;var el=p.querySelector('#cfgBgFile');if(el)el.click()"><i class="fa-solid fa-cloud-arrow-up"></i> Image</button>
+            <button class="profile-action-btn secondary" style="padding:4px 12px;font-size:11px;" onclick="resetCfgBg(this.closest('.panel')||this.closest('.profile-info-section')||document)"><i class="fa-solid fa-eraser"></i> Reset</button>
+            <input type="file" id="cfgBgFile" accept="image/*" style="display:none;" onchange="handleCfgBgFile(this)">
+          </div>
+          <div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:6px;">
+            <input type="hidden" id="cfgBgColor" value="${bgColor}">
+            <span id="bgFileDisplay" style="font-size:12px;color:var(--text-muted);align-self:center;max-width:160px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${cfg.bgImage ? 'Image set' : (cfg.bgColor ? 'Color set' : '')}</span>
+          </div>
+          <div class="chat-cfg-swatches">
+            ${presets.map(function(c) { return '<button class="chat-cfg-swatch" style="background:' + c + ';" onclick="setCfgBgColor(\'' + c + '\',this.closest(\'.panel\')||this.closest(\'.profile-info-section\')||document)"></button>' }).join('')}
+          </div>
+        </div>
+      </div>
+      <div class="profile-actions" style="padding:12px 16px 16px;display:flex;gap:8px;flex-wrap:wrap;">
+        <button class="profile-action-btn primary" style="flex:1;" onclick="saveChatCfgButton(this)"><i class="fa-solid fa-floppy-disk"></i> Save</button>
+        <button class="profile-action-btn secondary" style="flex:1;" onclick="renderChatCfgPanel(this.closest('.profile-info-section')?.querySelector('#chatCfgInner') || document.getElementById('chatCfgInner'))"><i class="fa-solid fa-rotate-left"></i> Reset form</button>
+      </div>`
+        inner.querySelectorAll('select,input[type="range"],input[type="color"]').forEach(function(el) {
+            el.addEventListener('input', function() {
+                var scope = el.closest('.panel') || el.closest('.profile-info-section') || document
+                if (el.id === 'cfgBgColor') setCfgBgColor(el.value, scope)
+                applyCfgPreview(scope)
+            })
+        })
+        applyCfgPreview(inner.closest('.panel') || inner.closest('.profile-info-section') || inner)
+    }
+    /* ═══════════════════════════════════════════════════════════════
+       WEBRTC VOICE CALL
+       Single modal covers all states:
+         outgoing  → "Calling…"  + Cancel
+         incoming  → "Incoming"  + Decline | Accept
+         connected → timer       + Mute | Speaker | Hang up
+    ════════════════════════════════════════════════════════════════ */
+    const ICE_SERVERS = {
+        iceServers: [
+            { urls: 'stun:stun.l.google.com:19302' },
+            { urls: 'stun:stun1.l.google.com:19302' }
+        ]
+    }
+
+    let peerConnection   = null
+    let localStream      = null
+    let remoteAudioCtx   = null   // for speaker toggle
+    let remoteGainNode   = null
+    let callTarget       = null
+    let callRoom         = null
+    let callTimerInt     = null
+    let callSeconds      = 0
+    let isMuted          = false
+    let isSpeakerOff     = false
+    let ringtoneCtx      = null   // inbound ringtone
+
+    /* ── Modal helpers ── */
+    function getContactAvatar(username) {
+        const img = document.querySelector(`#iconList button[data-username="${username}"] img.user-avatar`)
+        return img?.getAttribute('src') || null
+    }
+
+    function setModalAvatar(username) {
+        const el  = document.getElementById('callModalAvatar')
+        const src = getContactAvatar(username)
+        const displayName = typeof getDisplayName === 'function' ? getDisplayName(username) : String(username || '?').split('@')[0]
+        if (src) {
+            el.innerHTML = `<img src="${src}" alt="${displayName}">`
+        } else {
+            el.textContent = (displayName || '?').charAt(0).toUpperCase()
+        }
+    }
+
+    function showCallModal(username, state) {
+        const modal      = document.getElementById('callModal')
+        const nameEl     = document.getElementById('callModalName')
+        const statusEl   = document.getElementById('callModalStatus')
+        const primaryEl  = document.getElementById('callPrimaryBtns')
+        const avatarEl   = document.getElementById('callModalAvatar')
+        const minimizeBtn = document.getElementById('callMinimizeBtn')
+        const secondaryEl = document.getElementById('callSecondaryBtns')
+
+        var displayName = typeof getDisplayName === 'function' ? getDisplayName(username) : String(username || '').split('@')[0]
+        nameEl.textContent = displayName
+        setModalAvatar(username)
+        modal.style.display = 'flex'
+        modal.className = 'call-modal call-state-' + state
+
+        avatarEl.className = 'call-modal-avatar'
+        statusEl.className = 'call-modal-status'
+        minimizeBtn.style.display = state === 'connected' ? 'flex' : 'none'
+        if (secondaryEl) secondaryEl.style.display = state === 'connected' ? 'flex' : 'none'
+
+        if (state === 'outgoing') {
+            statusEl.textContent = 'Calling…'
+            primaryEl.innerHTML = `
+            <button class="call-primary-btn end" onclick="endCall()">
+                <div class="call-primary-icon"><i class="fa-solid fa-phone-slash"></i></div>
+                <span class="call-primary-label">Cancel</span>
+            </button>`
+        } else if (state === 'incoming') {
+            statusEl.textContent = 'Incoming voice call'
+            avatarEl.classList.add('ringing')
+            primaryEl.innerHTML = `
+            <button class="call-primary-btn end" onclick="declineCall()">
+                <div class="call-primary-icon"><i class="fa-solid fa-phone-slash"></i></div>
+                <span class="call-primary-label">Decline</span>
+            </button>
+            <button class="call-primary-btn accept" onclick="acceptCall(window._pendingOffer)">
+                <div class="call-primary-icon"><i class="fa-solid fa-phone"></i></div>
+                <span class="call-primary-label">Accept</span>
+            </button>`
+        } else if (state === 'connected') {
+            statusEl.className = 'call-modal-status connected'
+            statusEl.textContent = '00:00'
+            avatarEl.classList.add('connected')
+            primaryEl.innerHTML = `
+            <button class="call-primary-btn end" onclick="endCall()">
+                <div class="call-primary-icon"><i class="fa-solid fa-phone-slash"></i></div>
+                <span class="call-primary-label">End</span>
+            </button>`
+            startCallTimer()
+        }
+    }
+
+    function hideCallModal() {
+        document.getElementById('callModal').style.display = 'none'
+        document.getElementById('callMinimized').style.display = 'none'
+        clearInterval(callTimerInt)
+        callSeconds = 0
+        document.getElementById('callModalStatus').textContent = ''
+        document.getElementById('callModalStatus').className = 'call-modal-status'
+        resetSecondaryBtns()
+    }
+
+    function minimizeCall() {
+        document.getElementById('callModal').style.display = 'none'
+        document.getElementById('callMinimized').style.display = 'flex'
+        var avatar = document.getElementById('callModalAvatar')
+        var minAvatar = document.getElementById('callMinAvatar')
+        minAvatar.innerHTML = avatar.innerHTML
+        document.getElementById('callMinName').textContent = document.getElementById('callModalName').textContent
+        var status = document.getElementById('callModalStatus').textContent
+        document.getElementById('callMinStatus').textContent = status || 'Connected'
+    }
+
+    function restoreCall() {
+        document.getElementById('callMinimized').style.display = 'none'
+        document.getElementById('callModal').style.display = 'flex'
+        // Re-apply connected state timer if needed
+        var statusEl = document.getElementById('callModalStatus')
+        if (statusEl.classList.contains('connected')) {
+            var sec = callSeconds
+            var m = String(Math.floor(sec / 60)).padStart(2,'0')
+            var s = String(sec % 60).padStart(2,'0')
+            statusEl.textContent = m + ':' + s
+        }
+    }
+
+    function resetSecondaryBtns() {
+        const muteBtn    = document.getElementById('muteMicBtn')
+        const speakerBtn = document.getElementById('speakerBtn')
+        if (muteBtn) {
+            muteBtn.classList.remove('toggled-off')
+            muteBtn.querySelector('.call-secondary-icon').innerHTML = '<i class="fa-solid fa-microphone"></i>'
+            muteBtn.querySelector('.call-secondary-label').textContent = 'Mute'
+        }
+        if (speakerBtn) {
+            speakerBtn.classList.remove('toggled-off')
+            speakerBtn.querySelector('.call-secondary-icon').innerHTML = '<i class="fa-solid fa-volume-high"></i>'
+            speakerBtn.querySelector('.call-secondary-label').textContent = 'Speaker'
+        }
+    }
+
+    function startCallTimer() {
+        callSeconds = 0
+        clearInterval(callTimerInt)
+        callTimerInt = setInterval(() => {
+            callSeconds++
+            const m = String(Math.floor(callSeconds / 60)).padStart(2,'0')
+            const s = String(callSeconds % 60).padStart(2,'0')
+            const el = document.getElementById('callModalStatus')
+            if (el) el.textContent = `${m}:${s}`
+        }, 1000)
+    }
+
+    /* ── Toggle Mute ── */
+    function toggleMute() {
+        if (!localStream) return
+        isMuted = !isMuted
+        localStream.getAudioTracks().forEach(t => { t.enabled = !isMuted })
+        const btn = document.getElementById('muteMicBtn')
+        if (!btn) return
+        const icon  = btn.querySelector('.call-secondary-icon')
+        const label = btn.querySelector('.call-secondary-label')
+        if (isMuted) {
+            icon.innerHTML  = '<i class="fa-solid fa-microphone-slash"></i>'
+            label.textContent = 'Unmute'
+            btn.classList.add('toggled-off')
+        } else {
+            icon.innerHTML  = '<i class="fa-solid fa-microphone"></i>'
+            label.textContent = 'Mute'
+            btn.classList.remove('toggled-off')
+        }
+    }
+
+    /* ── Toggle Speaker ── */
+    function toggleSpeaker() {
+        isSpeakerOff = !isSpeakerOff
+        const remoteAudio = document.getElementById('remoteAudio')
+        remoteAudio.muted = isSpeakerOff
+        const btn = document.getElementById('speakerBtn')
+        if (!btn) return
+        const icon  = btn.querySelector('.call-secondary-icon')
+        const label = btn.querySelector('.call-secondary-label')
+        if (isSpeakerOff) {
+            icon.innerHTML  = '<i class="fa-solid fa-volume-xmark"></i>'
+            label.textContent = 'Speaker'
+            btn.classList.add('toggled-off')
+        } else {
+            icon.innerHTML  = '<i class="fa-solid fa-volume-high"></i>'
+            label.textContent = 'Speaker'
+            btn.classList.remove('toggled-off')
+        }
+    }
+
+    /* ── Ringtone for incoming calls ── */
+    function startRingtone() {
+        try {
+            ringtoneCtx = new (window.AudioContext || window.webkitAudioContext)()
+            function playBeep() {
+                if (!ringtoneCtx) return
+                var osc = ringtoneCtx.createOscillator()
+                var gain = ringtoneCtx.createGain()
+                osc.type = 'sine'
+                osc.frequency.value = 440
+                gain.gain.setValueAtTime(0.3, ringtoneCtx.currentTime)
+                gain.gain.exponentialRampToValueAtTime(0.01, ringtoneCtx.currentTime + 0.5)
+                osc.connect(gain)
+                gain.connect(ringtoneCtx.destination)
+                osc.start()
+                osc.stop(ringtoneCtx.currentTime + 0.5)
+            }
+            var ringInterval = setInterval(function() {
+                if (!ringtoneCtx) { clearInterval(ringInterval); return }
+                playBeep()
+                setTimeout(playBeep, 600)
+            }, 2000)
+            ringtoneCtx._interval = ringInterval
+        } catch(e) {}
+    }
+
+    function stopRingtone() {
+        if (ringtoneCtx) {
+            clearInterval(ringtoneCtx._interval)
+            ringtoneCtx.close().catch(function(){})
+            ringtoneCtx = null
+        }
+    }
+
+    /* ── Create peer connection ── */
+    async function createPeerConnection() {
+        peerConnection = new RTCPeerConnection(ICE_SERVERS)
+        if (localStream) {
+            localStream.getTracks().forEach(track => peerConnection.addTrack(track, localStream))
+        }
+        peerConnection.ontrack = (event) => {
+            document.getElementById('remoteAudio').srcObject = event.streams[0]
+        }
+        peerConnection.onicecandidate = (event) => {
+            if (event.candidate) {
+                socket.emit('call:ice-candidate', {
+                    candidate: event.candidate,
+                    room:      callRoom,
+                    target:    callTarget,
+                    sender:    CurrentUser.getUsername()
+                })
+            }
+        }
+        peerConnection.onconnectionstatechange = () => {
+            if (['disconnected','failed','closed'].includes(peerConnection?.connectionState)) {
+                cleanupCall()
+            }
+        }
+    }
+
+    async function getMicrophone() {
+        localStream = await navigator.mediaDevices.getUserMedia({ audio: true, video: false })
+    }
+
+    /* ── Start a call ── */
+    async function startCall() {
+        if (!Interlocutor.getUsername()) return
+        if (peerConnection) return
+        callTarget = Interlocutor.getUsername()
+        callRoom   = CurrentRoom.getName()
+        try {
+            await getMicrophone()
+            await createPeerConnection()
+            const offer = await peerConnection.createOffer()
+            await peerConnection.setLocalDescription(offer)
+            socket.emit('call:invite', { room: callRoom, caller: CurrentUser.getUsername(), callee: callTarget, offer })
+            showCallModal(callTarget, 'outgoing')
+        } catch (err) {
+            console.error('startCall:', err)
+            alert('Microphone access denied. Please allow microphone access and try again.')
+            cleanupCall()
+        }
+    }
+
+    /* ── Accept incoming call ── */
+    async function acceptCall(offer) {
+        stopRingtone()
+        try {
+            await getMicrophone()
+            await createPeerConnection()
+            await peerConnection.setRemoteDescription(new RTCSessionDescription(offer))
+            const answer = await peerConnection.createAnswer()
+            await peerConnection.setLocalDescription(answer)
+            socket.emit('call:accept', { room: callRoom, caller: callTarget, callee: CurrentUser.getUsername(), answer })
+            showCallModal(callTarget, 'connected')
+        } catch (err) {
+            console.error('acceptCall:', err)
+            cleanupCall()
+        }
+    }
+
+    /* ── Decline call ── */
+    function declineCall() {
+        stopRingtone()
+        socket.emit('call:decline', { room: callRoom, caller: callTarget, callee: CurrentUser.getUsername() })
+        hideCallModal()
+        callTarget = null
+        callRoom   = null
+    }
+
+    /* ── End / hang up ── */
+    function endCall() {
+        if (callRoom) {
+            socket.emit('call:end', { room: callRoom, sender: CurrentUser.getUsername(), target: callTarget })
+        }
+        cleanupCall()
+    }
+
+    /* ── Full cleanup ── */
+    function cleanupCall() {
+        stopRingtone()
+        if (peerConnection) { peerConnection.close(); peerConnection = null }
+        if (localStream)    { localStream.getTracks().forEach(t => t.stop()); localStream = null }
+        const audio = document.getElementById('remoteAudio')
+        if (audio) { audio.srcObject = null; audio.muted = false }
+        hideCallModal()
+        isMuted      = false
+        isSpeakerOff = false
+        callTarget   = null
+        callRoom     = null
+    }
+
+    /* ═══════════════════════════════════════════════════════════════
+       SOCKET INIT
+    ═══════════════════════════════════════════════════════════════ */
+    const CurrentUser = new UserObj()
+    const Interlocutor = new UserObj()
+    const CurrentRoom  = new Room()
+    const socket = io()
+    window.socket     = socket   // expose for FCM module
+    window.CurrentRoom = CurrentRoom
+    const form   = document.getElementById('form')
+
+    if (!localStorage.getItem('token') || localStorage.getItem('token') === 'null') {
+        window.location = window.location.origin + '/login'
+    }
+
+    socket.emit('jwtCheck', localStorage.getItem('token'))
+
+    socket.on('JwtSuccess', (tokenResult) => {
+        if (tokenResult.username) {
+            CurrentUser.setUsername(tokenResult.username)
+            CurrentUser.setId(tokenResult.id)
+            getChatMessages(tokenResult.username)
+            socket.emit('userOnline', { username: tokenResult.username })
+            // Request push permission and save FCM token
+            if (window.__setupFCMPush) {
+                window.__setupFCMPush(tokenResult.username)
+            }
+            applyChatCfg().catch(function(){})
+        } else {
+            window.location = window.location.origin + '/login'
+        }
+    })
+
+    /* ── Presence ── */
+    socket.on('userOnline', (data) => {
+        userStatus[data.username] = { online: true, lastSeen: null }
+        updateStatusLabel(data.username, 'online')
+    })
+    socket.on('userOffline', (data) => {
+        userStatus[data.username] = { online: false, lastSeen: new Date(data.lastSeen || Date.now()) }
+        updateStatusLabel(data.username, 'offline')
+        // If offline mid-call, clean up
+        if (data.username === callTarget) cleanupCall()
+    })
+    socket.on('userStatus', (data) => {
+        userStatus[data.username] = { online: data.online, lastSeen: data.lastSeen ? new Date(data.lastSeen) : null }
+        updateStatusLabel(data.username, data.online ? 'online' : 'offline')
+    })
+
+    /* ── Typing ── */
+    socket.on('typing', (data) => {
+        if (data.sender === Interlocutor.getUsername()) updateStatusLabel(data.sender, 'typing')
+    })
+    socket.on('stopTyping', (data) => {
+        if (data.sender === Interlocutor.getUsername()) {
+            const info = userStatus[data.sender]
+            updateStatusLabel(data.sender, info?.online ? 'online' : 'offline')
+        }
+    })
+
+    /* ═══════════════════════════════════════════════════════════════
+       WEBRTC SIGNALING — socket events
+    ═══════════════════════════════════════════════════════════════ */
+
+    // Someone is calling us
+    socket.on('call:invite', async (data) => {
+        if (peerConnection) {
+            socket.emit('call:decline', { room: data.room, caller: data.caller, callee: CurrentUser.getUsername() })
+            return
+        }
+        callTarget           = data.caller
+        callRoom             = data.room
+        window._pendingOffer = data.offer
+        showCallModal(data.caller, 'incoming')
+        startRingtone()
+    })
+
+    // Our call was accepted
+    socket.on('call:accepted', async (data) => {
+        if (!peerConnection) return
+        try {
+            await peerConnection.setRemoteDescription(new RTCSessionDescription(data.answer))
+            showCallModal(callTarget, 'connected')
+        } catch (err) {
+            console.error('call:accepted error:', err)
+            cleanupCall()
+        }
+    })
+
+    // Our call was declined
+    socket.on('call:declined', (data) => {
+        cleanupCall()
+        // Brief notification in header status
+        const text = document.getElementById('statusText')
+        if (text) {
+            text.textContent = 'Call declined'
+            setTimeout(() => updateStatusLabel(callTarget, userStatus[callTarget]?.online ? 'online' : 'offline'), 3000)
+        }
+    })
+
+    // Call ended by the other person
+    socket.on('call:ended', (data) => {
+        cleanupCall()
+    })
+
+    // ICE candidates from the other peer
+    socket.on('call:ice-candidate', async (data) => {
+        if (!peerConnection) return
+        try {
+            await peerConnection.addIceCandidate(new RTCIceCandidate(data.candidate))
+        } catch (err) {
+            console.error('ICE candidate error:', err)
+        }
+    })
+
+    /* ═══════════════════════════════════════════════════════════════
+       CHAT MESSAGES
+    ═══════════════════════════════════════════════════════════════ */
+    form.addEventListener('submit', function (e) {
+        e.preventDefault()
+        if (Interlocutor.getUsername() && input.value.trim()) {
+            socket.emit('stopTyping', { room: CurrentRoom.getName(), sender: CurrentUser.getUsername(), receiver: Interlocutor.getUsername() })
+            clearTimeout(typingTimer)
+            socket.emit('chat message', { room: CurrentRoom.getName(), message: input.value.trim(), sender: CurrentUser.getUsername(), receiver: Interlocutor.getUsername() })
+            input.value = ''
+        }
+    })
+
+    socket.on("chat message", (data) => {
+        const li = document.createElement("li")
+        li.classList.add('message-bubble')
+        li.setAttribute('id', data.message._id)
+        li.setAttribute('data-read', data.message.isRead)
+        if (data.message.receiver === CurrentUser.getUsername()) {
+            li.classList.add('bubble-received')
+        } else {
+            li.classList.add('bubble-sent')
+            let isRead = document.createElement('span')
+            isRead.classList.add('isRead')
+            li.appendChild(isRead)
+        }
+        let ImageBox = document.createElement('div')
+        let date     = new Date(data.message.created_at)
+        let msgDate  = document.createElement('span')
+        const files = Array.isArray(data.message.files) ? data.message.files : []
+        if (files.length && files[0].startsWith('stickers/')) li.classList.add('sticker-msg')
+        if (files.length !== 0) {
+            if (files.length === 1) {
+                ImageBox.classList.add('MsgImage')
+                if (files[0].startsWith('stickers/') && files[0].endsWith('.webm')) {
+                    let video = document.createElement('video')
+                    video.setAttribute('src', files[0])
+                    video.classList.add('image')
+                    video.muted = true
+                    video.autoplay = true
+                    video.loop = true
+                    video.playsInline = true
+                    ImageBox.appendChild(video)
+                } else {
+                    let image = document.createElement('img')
+                    image.setAttribute('src', files[0].startsWith('stickers/') ? files[0] : 'uploads/' + files[0])
+                    image.classList.add('image')
+                    image.setAttribute('onclick', 'openImage(this)')
+                    image.setAttribute('data-img', files[0])
+                    ImageBox.appendChild(image)
+                }
+            } else {
+                ImageBox.classList.add('MsgImages')
+                files.forEach(function (item) {
+                    if (item.startsWith('stickers/') && item.endsWith('.webm')) {
+                        let video = document.createElement('video')
+                        video.setAttribute('src', item)
+                        video.classList.add('image')
+                        video.muted = true
+                        video.autoplay = true
+                        video.loop = true
+                        video.playsInline = true
+                        ImageBox.appendChild(video)
+                    } else {
+                        let image = document.createElement('img')
+                        image.setAttribute('src', item.startsWith('stickers/') ? item : 'uploads/' + item)
+                        image.classList.add('image')
+                        image.setAttribute('onclick', 'openImage(this)')
+                        image.setAttribute('data-img', item)
+                        ImageBox.appendChild(image)
+                    }
+                })
+            }
+        }
+        let messageText = document.createElement('p')
+        messageText.classList.add('messageText')
+        messageText.textContent = data.message.message
+        msgDate.textContent = date.getHours() + ':' + String(date.getMinutes()).padStart(2,'0')
+        msgDate.classList.add('messageDate')
+        li.appendChild(messageText)
+        messageText.appendChild(ImageBox)
+        li.appendChild(msgDate)
+        li.setAttribute('data-created', data.message.created_at)
+        li.setAttribute('data-id', data.message._id)
+        const messages = document.getElementById(data.message.chat_Id).querySelector('ul')
+        messages.appendChild(li)
+        let temp    = document.getElementById(data.message.chat_Id)
+        let element = temp.querySelector('.msg-panel')
+        let closeBtn = document.getElementById('closeImgUpload')
+        if (closeBtn) closeBtn.click()
+        const chatUsername = data.message.sender === CurrentUser.getUsername() ? data.message.receiver : data.message.sender
+        const chatBtn = document.querySelector(`#iconList .chat-item-btn[data-username="${chatUsername}"]`)
+        if (chatBtn) {
+            const preview = chatBtn.querySelector('.chat-item-preview')
+            const timeEl = chatBtn.querySelector('.chat-item-time')
+            if (preview) {
+                const txt = data.message.message || (data.message.files && data.message.files.length > 0 ? 'Photo' : '')
+                preview.textContent = txt.length > 50 ? txt.slice(0, 50) + '...' : txt
+            }
+            if (timeEl) {
+                const d = new Date(data.message.created_at)
+                const now = new Date()
+                timeEl.textContent = d.toDateString() === now.toDateString()
+                    ? String(d.getHours()).padStart(2,'0') + ':' + String(d.getMinutes()).padStart(2,'0')
+                    : d.toLocaleDateString()
+            }
+            const li = chatBtn.closest('.chat-list-item')
+            const list = document.getElementById('iconList')
+            if (li && list) list.prepend(li)
+        }
+        if (data.message.receiver !== CurrentUser.getUsername()) {
+            element.scrollTop = element.scrollHeight
+        } else {
+            const chatIsActive = CurrentRoom.getName() === data.message.chat_Id && document.visibilityState === 'visible'
+            if (!chatIsActive) {
+                const span = document.querySelector(`#iconList span.unread-indicator[data-user-name="${chatUsername}"]`)
+                if (span) {
+                    span.textContent = (parseInt(span.textContent) || 0) + 1
+                    span.classList.remove('d-none')
+                }
+            } else {
+                if (element.scrollTop + element.clientHeight + 80 >= element.scrollHeight) {
+                    socket.emit('messageRead', { id: data.message._id })
+                }
+            }
+        }
+    })
+
+    socket.on('Read', (data) => {
+        let el = document.getElementById(data._id)
+        if (!el) return
+        if (data.sender === CurrentUser.getUsername()) {
+            let indicator = el.querySelector('.isRead')
+            if (indicator) indicator.remove()
+        }
+        el.setAttribute('data-read', true)
+    })
+
+    socket.on("JoinedNew", (IncomingData) => {
+        let data = IncomingData.room
+        let CreateChatData = {}
+        if (data.firstMember === CurrentUser.getUsername()) {
+            CreateChatData.username = data.SecondMember
+        } else if (data.SecondMember === CurrentUser.getUsername()) {
+            CreateChatData.username = data.firstMember
+        }
+        CreateChatData.room = data.chatId
+        createChat(CreateChatData)
+        setChatAvatar(CreateChatData.username)
+        const info = document.getElementById("info")
+        if (info) info.remove()
+        let OpenTab      = document.querySelector(`button[data-username="${CreateChatData.username}"]`)
+        let closeProfile = document.getElementById('closeViewProfile')
+        let element      = document.getElementById('iconList')
+        element.scrollTop = element.scrollHeight
+        Interlocutor.setUsername(CreateChatData.username)
+        CurrentRoom.SetName(CreateChatData.room)
+        enterChatMode(CreateChatData.username)
+        if (closeProfile) {
+            closeProfile.click()
+            if (OpenTab) OpenTab.click()
+        } else {
+            SetListeners(true)
+        }
+    })
+
+    document.addEventListener('visibilitychange', () => {
+        if (!document.hidden && CurrentUser.getUsername()) {
+            socket.emit('userOnline', { username: CurrentUser.getUsername() })
+        }
+    })
+
+    // End call on tab close
+    window.addEventListener('beforeunload', function() {
+        if (callRoom) {
+            socket.emit('call:end', { room: callRoom, sender: CurrentUser.getUsername(), target: callTarget })
+        }
+    })
+
+    // Escape to end/decline call
+    document.addEventListener('keydown', function(e) {
+        if (e.key === 'Escape' && document.getElementById('callModal').style.display === 'flex') {
+            var modal = document.getElementById('callModal')
+            if (modal.querySelector('.call-primary-btn.accept')) {
+                declineCall()
+            } else {
+                endCall()
+            }
+        }
+    })
+
+    // init nav background slider position
+    const initSlider = () => {
+        const btn = document.querySelector('.nav-btn.active')
+        const slider = document.getElementById('navBgSlider')
+        if (btn && slider) slider.style.left = btn.offsetLeft + 'px'
+    }
+    initSlider()
+    window.addEventListener('resize', initSlider)
+</script>
+</body>
+</html>

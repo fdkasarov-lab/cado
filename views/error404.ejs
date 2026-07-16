@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Cado - Not Found</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="icon" href="/favicon.ico" sizes="any">
+    <meta name="theme-color" content="#0D1117">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css"
+          crossorigin="anonymous" referrerpolicy="no-referrer"/>
+    <link href="/style.css" rel="stylesheet">
+</head>
+<body>
+<div class="profile-page">
+    <div class="profile-page-card" style="text-align:center; padding: 40px 24px;">
+        <i class="fa-solid fa-user-slash" style="font-size:40px; color: var(--text-muted);"></i>
+        <p style="margin-top:16px; font-size:16px; color: var(--text-color);">
+            <%= typeof message !== 'undefined' && message ? message : 'Page not found.' %>
+        </p>
+        <a href="/" class="profile-action-btn primary" style="display:inline-flex; margin-top:16px;">Back to Chat</a>
+    </div>
+</div>
+</body>
+</html>

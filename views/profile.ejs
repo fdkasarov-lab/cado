@@ -1,0 +1,172 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Cado - My Profile</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="icon" href="/favicon.ico" sizes="any">
+    <link rel="icon" type="image/png" href="/icons/icon-192.png?v=2">
+    <link rel="manifest" href="/manifest.webmanifest?v=3">
+    <link rel="apple-touch-icon" href="/apple-touch-icon.png?v=2">
+    <meta name="theme-color" content="#0D1117">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-title" content="Cado">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css"
+          crossorigin="anonymous" referrerpolicy="no-referrer"/>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link href="/style.css" rel="stylesheet">
+</head>
+<body>
+<div class="profile-page">
+    <div class="profile-page-card">
+
+        <div class="profile-panel-header">
+            <span class="profile-panel-title">My Profile</span>
+            <a class="profile-close-btn" href="/" title="Back to chat">
+                <i class="fa-solid fa-xmark"></i>
+            </a>
+        </div>
+
+        <% if (typeof success !== 'undefined' && success) { %>
+            <div class="profile-page-flash success"><%= success %></div>
+        <% } %>
+        <% if (typeof error !== 'undefined' && error) { %>
+            <div class="profile-page-flash error"><%= error %></div>
+        <% } %>
+
+        <div class="profile-hero">
+            <div class="profile-avatar-wrap" onclick="document.getElementById('toggleAvatarZoom').click()" style="cursor:pointer;">
+                <% if (user.avatar) { %>
+                    <img class="profile-avatar-img" src="/uploads/<%= user.avatar %>" alt="Avatar">
+                <% } else { %>
+                    <div class="profile-avatar-fallback">
+                        <%= (user.firstName ? user.firstName[0] : user.username[0]).toUpperCase() %>
+                    </div>
+                <% } %>
+                <span class="profile-online-dot"></span>
+                <div class="profile-avatar-overlay"><i class="fa-solid fa-search-plus"></i></div>
+            </div>
+            <p class="profile-full-name">
+                <%= [user.firstName, user.lastName].filter(Boolean).join(' ') || user.username %>
+            </p>
+            <p class="profile-username">@<%= user.username %></p>
+            <div class="profile-meta-row">
+                <% if (user.isOnline) { %>
+                    <span><i class="fa-solid fa-circle" style="color:#22C55E;font-size:8px;margin-right:4px;"></i> Online</span>
+                <% } else { %>
+                    <span>Offline<% if (user.lastSeen) { %> · last seen <%= new Date(user.lastSeen).toLocaleString() %><% } %></span>
+                <% } %>
+            </div>
+        </div>
+
+        <div class="profile-actions">
+            <a href="/profile/edit" class="profile-action-btn primary">
+                <i class="fa-solid fa-pen"></i> Edit Profile
+            </a>
+            <button class="profile-action-btn secondary" onclick="navigator.clipboard.writeText('<%= user.username %>');this.innerHTML='<i class=fa-solid fa-check></i> Copied';setTimeout(()=>window.location.reload(),1200)">
+                <i class="fa-solid fa-link"></i> Share
+            </button>
+        </div>
+
+        <div class="profile-info-section">
+            <div class="profile-info-row">
+                <div class="profile-info-icon"><i class="fa-solid fa-quote-left"></i></div>
+                <div class="profile-info-content">
+                    <span class="profile-info-label">About</span>
+                    <span class="profile-info-value"><%= user.about || 'No bio yet.' %></span>
+                </div>
+            </div>
+            <% if (user.createdAt) { %>
+            <div class="profile-info-row">
+                <div class="profile-info-icon"><i class="fa-solid fa-calendar"></i></div>
+                <div class="profile-info-content">
+                    <span class="profile-info-label">Joined</span>
+                    <span class="profile-info-value"><%= new Date(user.createdAt).toLocaleDateString() %></span>
+                </div>
+            </div>
+            <% } %>
+            <div class="profile-info-row">
+                <div class="profile-info-icon"><i class="fa-solid fa-lock"></i></div>
+                <div class="profile-info-content">
+                    <span class="profile-info-label">Security</span>
+                    <span class="profile-info-value"><a href="/profile/password">Change password</a></span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Contacts section -->
+        <div class="profile-section-header">
+            <i class="fa-solid fa-address-book"></i> Contacts
+            <span class="profile-section-badge"><%= user.contacts ? user.contacts.length : 0 %></span>
+        </div>
+        <div class="profile-contacts-list" id="contactsList">
+            <% if (typeof contactUsers !== 'undefined' && contactUsers && contactUsers.length > 0) { %>
+                <% contactUsers.forEach(function(c) { %>
+                <a class="profile-contact-item" href="/profile/<%= c.username %>">
+                    <div class="profile-contact-avatar">
+                        <% if (c.avatar) { %>
+                            <img src="/uploads/<%= c.avatar %>" alt="<%= c.firstName %>">
+                        <% } else { %>
+                            <div class="profile-avatar-fallback" style="width:40px;height:40px;font-size:16px;">
+                                <%= (c.firstName ? c.firstName[0] : c.username[0]).toUpperCase() %>
+                            </div>
+                        <% } %>
+                        <span class="profile-contact-online" style="<%= c.isOnline ? '' : 'display:none;' %>"></span>
+                    </div>
+                    <div class="profile-contact-info">
+                        <span class="profile-contact-name"><%= [c.firstName, c.lastName].filter(Boolean).join(' ') || c.username %></span>
+                        <span class="profile-contact-uname">@<%= c.username %></span>
+                    </div>
+                </a>
+                <% }) %>
+            <% } else { %>
+                <div class="profile-contacts-empty">
+                    <i class="fa-solid fa-users"></i>
+                    <p>No contacts yet</p>
+                    <span>Add contacts from chat profiles</span>
+                </div>
+            <% } %>
+        </div>
+
+        <div class="profile-danger-zone">
+            <span class="profile-danger-title">Account</span>
+            <form action="/profile/delete" method="POST" onsubmit="return confirm('Delete your account permanently? This cannot be undone.');">
+                <button type="submit" class="profile-danger-btn">
+                    <i class="fa-solid fa-trash"></i> Delete Account
+                </button>
+            </form>
+        </div>
+
+        <div class="profile-form-actions" style="padding: 0 20px 20px;">
+            <a class="profile-cancel-link" href="/logout">
+                <i class="fa-solid fa-arrow-right-from-bracket"></i> Log out
+            </a>
+        </div>
+    </div>
+</div>
+
+<!-- Avatar zoom modal -->
+<div class="profile-avatar-zoom" id="avatarZoom" style="display:none;" onclick="this.style.display='none'">
+    <div class="profile-avatar-zoom-content">
+        <% if (user.avatar) { %>
+            <img src="/uploads/<%= user.avatar %>" alt="Avatar">
+        <% } else { %>
+            <div class="profile-avatar-fallback" style="width:200px;height:200px;font-size:72px;border:none;box-shadow:none;">
+                <%= (user.firstName ? user.firstName[0] : user.username[0]).toUpperCase() %>
+            </div>
+        <% } %>
+    </div>
+</div>
+
+<script>
+// Avatar zoom toggle
+document.addEventListener('click', function(e) {
+    const wrap = e.target.closest('.profile-hero .profile-avatar-wrap')
+    if (wrap) {
+        document.getElementById('avatarZoom').style.display = 'flex'
+    }
+})
+</script>
+</body>
+</html>

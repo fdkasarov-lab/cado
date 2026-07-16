@@ -1,0 +1,142 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Cado - Edit Profile</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="icon" href="/favicon.ico" sizes="any">
+    <link rel="icon" type="image/png" href="/icons/icon-192.png?v=2">
+    <link rel="manifest" href="/manifest.webmanifest?v=3">
+    <link rel="apple-touch-icon" href="/apple-touch-icon.png?v=2">
+    <meta name="theme-color" content="#0D1117">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-title" content="Cado">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css"
+          crossorigin="anonymous" referrerpolicy="no-referrer"/>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link href="/style.css" rel="stylesheet">
+</head>
+<body>
+<% var maxName = (typeof maxNameLen !== 'undefined' && maxNameLen) ? maxNameLen : 20; %>
+<% var maxAbout = (typeof maxAboutLen !== 'undefined' && maxAboutLen) ? maxAboutLen : 300; %>
+<div class="profile-page">
+    <div class="profile-page-card">
+
+        <div class="profile-panel-header">
+            <span class="profile-panel-title">Edit Profile</span>
+            <a class="profile-close-btn" href="/profile" title="Cancel">
+                <i class="fa-solid fa-xmark"></i>
+            </a>
+        </div>
+
+        <% if (typeof error !== 'undefined' && error) { %>
+            <div class="profile-page-flash error"><%= error %></div>
+        <% } %>
+
+        <form id="edit-form" class="profile-form" action="/profile/edit" method="POST" enctype="multipart/form-data">
+
+            <div class="avatar-edit">
+                <div class="avatar-edit-wrap">
+                    <% if (user.avatar) { %>
+                        <img class="avatar-edit-img" id="avatarPreview" src="/uploads/<%= user.avatar %>" alt="Avatar">
+                    <% } else { %>
+                        <div class="avatar-edit-fallback" id="avatarPreviewFallback">
+                            <%= (user.firstName ? user.firstName[0] : user.username[0]).toUpperCase() %>
+                        </div>
+                        <img class="avatar-edit-img" id="avatarPreview" style="display:none;" alt="Avatar">
+                    <% } %>
+                    <label class="avatar-edit-btn" for="avatar-input" title="Change photo">
+                        <i class="fa-solid fa-camera"></i>
+                    </label>
+                    <input type="file" id="avatar-input" name="avatar" class="avatar-edit-input" accept=".png,.jpg,.jpeg">
+                </div>
+                <% if (user.avatar) { %>
+                    <label class="avatar-edit-remove">
+                        <input type="checkbox" name="removeAvatar" id="removeAvatar">
+                        Remove current photo
+                    </label>
+                <% } %>
+            </div>
+
+            <div class="profile-form-group">
+                <label class="profile-form-label" for="firstName">First Name</label>
+                <input type="text" class="profile-form-input" maxlength="<%= maxName %>" id="firstName" name="firstName"
+                       placeholder="First name" value="<%= user.firstName || '' %>" required>
+            </div>
+
+            <div class="profile-form-group">
+                <label class="profile-form-label" for="lastName">Last Name</label>
+                <input type="text" class="profile-form-input" maxlength="<%= maxName %>" id="lastName" name="lastName"
+                       placeholder="Last name" value="<%= user.lastName || '' %>" required>
+            </div>
+
+            <div class="profile-form-group">
+                <label class="profile-form-label" for="about">About</label>
+                <textarea class="profile-form-textarea" name="about" id="about" maxlength="<%= maxAbout %>"
+                          placeholder="Tell people about you..."><%= user.about || '' %></textarea>
+                <span class="profile-form-counter" id="aboutCounter">0 / <%= maxAbout %></span>
+            </div>
+
+            <div class="profile-form-actions">
+                <button type="submit" class="profile-submit-btn" id="submitBtn">Save Changes</button>
+                <a class="profile-cancel-link" href="/profile">Cancel</a>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script>
+    // ── Live avatar preview (local FileReader only — the real upload happens
+    //    on normal form submit, there is no separate AJAX upload request). ──
+    const avatarInput = document.getElementById('avatar-input');
+    const avatarPreview = document.getElementById('avatarPreview');
+    const avatarFallback = document.getElementById('avatarPreviewFallback');
+    const removeAvatarBox = document.getElementById('removeAvatar');
+
+    avatarInput.addEventListener('change', () => {
+        const file = avatarInput.files[0];
+        if (!file) return;
+
+        const allowed = ['image/png', 'image/jpeg'];
+        if (!allowed.includes(file.type)) {
+            alert('Only PNG or JPG images are allowed.');
+            avatarInput.value = '';
+            return;
+        }
+
+        const reader = new FileReader();
+        reader.onload = (e) => {
+            avatarPreview.src = e.target.result;
+            avatarPreview.style.display = 'block';
+            if (avatarFallback) avatarFallback.style.display = 'none';
+            if (removeAvatarBox) removeAvatarBox.checked = false; // picking a new photo cancels "remove"
+        };
+        reader.readAsDataURL(file);
+    });
+
+    // ── Character counter for the About field ──────────────────────────
+    const aboutField = document.getElementById('about');
+    const aboutCounter = document.getElementById('aboutCounter');
+    const maxAboutLen = <%= maxAbout %>;
+
+    function updateAboutCounter() {
+        const len = aboutField.value.length;
+        aboutCounter.textContent = len + ' / ' + maxAboutLen;
+        aboutCounter.classList.toggle('limit', len >= maxAboutLen);
+    }
+    aboutField.addEventListener('input', updateAboutCounter);
+    updateAboutCounter();
+
+    // ── Basic client-side validation before submit ─────────────────────
+    document.getElementById('edit-form').addEventListener('submit', function (e) {
+        const firstName = document.getElementById('firstName').value.trim();
+        const lastName = document.getElementById('lastName').value.trim();
+        if (!firstName || !lastName) {
+            e.preventDefault();
+            alert('Please fill in both first and last name.');
+        }
+    });
+</script>
+</body>
+</html>

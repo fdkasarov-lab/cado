@@ -1,0 +1,275 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Cado - <%= profileUser.username %></title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="icon" href="/favicon.ico" sizes="any">
+    <link rel="icon" type="image/png" href="/icons/icon-192.png?v=2">
+    <link rel="manifest" href="/manifest.webmanifest?v=3">
+    <link rel="apple-touch-icon" href="/apple-touch-icon.png?v=2">
+    <meta name="theme-color" content="#0D1117">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-title" content="Cado">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css"
+          crossorigin="anonymous" referrerpolicy="no-referrer"/>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link href="/style.css" rel="stylesheet">
+</head>
+<body>
+<div class="profile-page">
+    <div class="profile-page-card">
+
+        <div class="profile-panel-header">
+            <span class="profile-panel-title"><%= profileUser.username %></span>
+            <a class="profile-close-btn" href="/" title="Back to chat">
+                <i class="fa-solid fa-xmark"></i>
+            </a>
+        </div>
+
+        <div class="profile-hero">
+            <div class="profile-avatar-wrap">
+                <% if (profileUser.avatar) { %>
+                    <img class="profile-avatar-img" src="/uploads/<%= profileUser.avatar %>" alt="Avatar">
+                <% } else { %>
+                    <div class="profile-avatar-fallback">
+                        <%= (profileUser.firstName ? profileUser.firstName[0] : profileUser.username[0]).toUpperCase() %>
+                    </div>
+                <% } %>
+                <span class="profile-online-dot" style="<%= profileUser.isOnline ? '' : 'display:none;' %>"></span>
+            </div>
+            <p class="profile-full-name">
+                <%= [profileUser.firstName, profileUser.lastName].filter(Boolean).join(' ') || profileUser.username %>
+            </p>
+            <p class="profile-username">@<%= profileUser.username %></p>
+            <div class="profile-meta-row">
+                <% if (profileUser.isOnline) { %>
+                    <span>Online</span>
+                <% } else { %>
+                    <span>Offline<% if (profileUser.lastSeen) { %> · last seen <%= new Date(profileUser.lastSeen).toLocaleString() %><% } %></span>
+                <% } %>
+            </div>
+        </div>
+
+        <div class="profile-actions">
+            <a href="/?with=<%= encodeURIComponent(profileUser.username) %>" class="profile-action-btn primary">
+                <i class="fa-solid fa-comment"></i> Message
+            </a>
+        </div>
+
+        <div class="profile-info-section">
+            <div class="profile-info-row">
+                <div class="profile-info-icon"><i class="fa-solid fa-quote-left"></i></div>
+                <div class="profile-info-content">
+                    <span class="profile-info-label">About</span>
+                    <span class="profile-info-value"><%= profileUser.about || 'No bio yet.' %></span>
+                </div>
+            </div>
+            <% if (profileUser.createdAt) { %>
+            <div class="profile-info-row">
+                <div class="profile-info-icon"><i class="fa-solid fa-calendar"></i></div>
+                <div class="profile-info-content">
+                    <span class="profile-info-label">Joined</span>
+                    <span class="profile-info-value"><%= new Date(profileUser.createdAt).toLocaleDateString() %></span>
+                </div>
+            </div>
+            <% } %>
+            <div class="profile-info-row" id="sharedMediaRow" style="cursor:pointer;" onclick="openSharedMedia('<%= profileUser.username %>')">
+                <div class="profile-info-icon"><i class="fa-solid fa-images"></i></div>
+                <div class="profile-info-content">
+                    <span class="profile-info-label">Shared Media</span>
+                    <span class="profile-info-value">View photos & files</span>
+                </div>
+                <i class="fa-solid fa-chevron-right" style="color:var(--text-muted);margin-left:auto;"></i>
+            </div>
+        </div>
+
+        <!-- Telegram-style action buttons -->
+        <div class="profile-tg-actions">
+            <button class="profile-tg-btn" id="contactBtn" onclick="toggleContact('<%= profileUser.username %>')" data-contact="<%= isContact %>">
+                <div class="profile-tg-btn-icon"><i class="fa-solid <%= isContact ? 'fa-user-check' : 'fa-user-plus' %>"></i></div>
+                <span class="profile-tg-btn-label"><%= isContact ? 'Contact' : 'Add Contact' %></span>
+            </button>
+            <button class="profile-tg-btn" id="muteBtn" onclick="toggleMuteChat('<%= profileUser.username %>')" data-muted="<%= isMuted %>">
+                <div class="profile-tg-btn-icon"><i class="fa-solid <%= isMuted ? 'fa-bell-slash' : 'fa-bell' %>"></i></div>
+                <span class="profile-tg-btn-label"><%= isMuted ? 'Unmute' : 'Mute' %></span>
+            </button>
+            <button class="profile-tg-btn <%= isBlocked ? 'danger' : '' %>" id="blockBtn" onclick="toggleBlock('<%= profileUser.username %>')" data-blocked="<%= isBlocked %>">
+                <div class="profile-tg-btn-icon"><i class="fa-solid <%= isBlocked ? 'fa-check-circle' : 'fa-ban' %>"></i></div>
+                <span class="profile-tg-btn-label"><%= isBlocked ? 'Unblock' : 'Block' %></span>
+            </button>
+        </div>
+
+    </div>
+</div>
+
+<!-- Shared Media Panel -->
+<div class="panel shared-media-panel" id="sharedMediaPanel">
+    <div class="shared-media-header">
+        <button class="profile-close-btn" id="closeSharedMedia">
+            <i class="fa-solid fa-chevron-down"></i>
+        </button>
+        <span class="shared-media-title">Shared Media</span>
+        <div style="width:36px;"></div>
+    </div>
+    <div class="shared-media-grid" id="sharedMediaGrid">
+        <div class="shared-media-empty">
+            <i class="fa-solid fa-images"></i>
+            <p>No shared media yet</p>
+        </div>
+    </div>
+</div>
+
+<script>
+// ── Shared Media ─────────────────────────────────────────────────────────
+function openSharedMedia(username) {
+    const panel = document.getElementById('sharedMediaPanel');
+    const grid = document.getElementById('sharedMediaGrid');
+    grid.innerHTML = '<div class="shared-media-loader"><div class="spinner"></div></div>';
+    panel.classList.add('open');
+
+    fetch('/profile/shared-media/' + encodeURIComponent(username))
+        .then(r => r.json())
+        .then(data => {
+            grid.innerHTML = '';
+            if (!data.media || data.media.length === 0) {
+                grid.innerHTML = '<div class="shared-media-empty"><i class="fa-solid fa-images"></i><p>No shared media yet</p></div>';
+                return;
+            }
+            data.media.forEach(item => {
+                const div = document.createElement('div');
+                div.className = 'shared-media-item';
+                div.innerHTML = '<img src="/uploads/' + item.file + '" loading="lazy">';
+                div.onclick = function () { openImage(this.querySelector('img')); };
+                grid.appendChild(div);
+            });
+        })
+        .catch(() => {
+            grid.innerHTML = '<div class="shared-media-empty"><i class="fa-solid fa-exclamation-triangle"></i><p>Failed to load</p></div>';
+        });
+}
+
+document.getElementById('closeSharedMedia').addEventListener('click', function () {
+    document.getElementById('sharedMediaPanel').classList.remove('open');
+});
+
+// ── Toggle Contact ───────────────────────────────────────────────────────
+function toggleContact(username) {
+    fetch('/profile/contact/toggle', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ username })
+    })
+    .then(r => r.json())
+    .then(data => {
+        const btn = document.getElementById('contactBtn');
+        const icon = btn.querySelector('.profile-tg-btn-icon i');
+        const label = btn.querySelector('.profile-tg-btn-label');
+        if (data.added) {
+            btn.dataset.contact = 'true';
+            icon.className = 'fa-solid fa-user-check';
+            label.textContent = 'Contact';
+        } else {
+            btn.dataset.contact = 'false';
+            icon.className = 'fa-solid fa-user-plus';
+            label.textContent = 'Add Contact';
+        }
+    })
+    .catch(err => console.error(err));
+}
+
+// ── Toggle Block ─────────────────────────────────────────────────────────
+function toggleBlock(username) {
+    fetch('/profile/block/toggle', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ username })
+    })
+    .then(r => r.json())
+    .then(data => {
+        const btn = document.getElementById('blockBtn');
+        const icon = btn.querySelector('.profile-tg-btn-icon i');
+        const label = btn.querySelector('.profile-tg-btn-label');
+        if (data.blocked) {
+            btn.dataset.blocked = 'true';
+            btn.classList.add('danger');
+            icon.className = 'fa-solid fa-check-circle';
+            label.textContent = 'Unblock';
+        } else {
+            btn.dataset.blocked = 'false';
+            btn.classList.remove('danger');
+            icon.className = 'fa-solid fa-ban';
+            label.textContent = 'Block';
+        }
+    })
+    .catch(err => console.error(err));
+}
+
+// ── Toggle Mute ──────────────────────────────────────────────────────────
+function toggleMuteChat(username) {
+    const myUsername = '<%= typeof currentUsername !== "undefined" ? currentUsername : "" %>';
+    const chatId1 = myUsername + '!@!@2!@!@' + username;
+    const chatId2 = username + '!@!@2!@!@' + myUsername;
+
+    fetch('/profile/mute/toggle', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ chatId: chatId1 })
+    })
+    .then(r => r.json())
+    .then(data => {
+        const btn = document.getElementById('muteBtn');
+        const icon = btn.querySelector('.profile-tg-btn-icon i');
+        const label = btn.querySelector('.profile-tg-btn-label');
+        if (data.muted) {
+            btn.dataset.muted = 'true';
+            icon.className = 'fa-solid fa-bell-slash';
+            label.textContent = 'Unmute';
+        } else {
+            btn.dataset.muted = 'false';
+            icon.className = 'fa-solid fa-bell';
+            label.textContent = 'Mute';
+        }
+    })
+    .catch(err => console.error(err));
+}
+
+// ── Image viewer (reuse from Client.js) ──────────────────────────────────
+function openImage(element) {
+    if (typeof window.openImage === 'function') return;
+    const background = document.createElement('div');
+    background.setAttribute('id','ImageView');
+    const ImageBox = document.createElement('div');
+    ImageBox.classList.add('ImageBox');
+    background.classList.add('imgBackground');
+    const Header = document.createElement('div');
+    Header.classList.add('ImgBackHeader');
+    const closeIcon = document.createElement('i');
+    closeIcon.classList.add('fas');
+    closeIcon.classList.add('fa-times');
+    closeIcon.setAttribute('id','closeImageView');
+    Header.appendChild(closeIcon);
+    background.appendChild(Header);
+    background.appendChild(ImageBox);
+    Array.from(element.parentNode.children).forEach(function (item) {
+        if (!item.dataset || !item.dataset.img) return;
+        const img = document.createElement('img');
+        img.setAttribute('src', 'uploads/' + item.dataset.img);
+        img.style.width = '100%';
+        ImageBox.appendChild(img);
+    });
+    if (ImageBox.children.length === 0) {
+        const img = document.createElement('img');
+        img.setAttribute('src', element.getAttribute('src'));
+        img.style.width = '100%';
+        ImageBox.appendChild(img);
+    }
+    document.body.appendChild(background);
+    document.getElementById('closeImageView').addEventListener('click', function () {
+        document.getElementById('ImageView').remove();
+    });
+}
+</script>
+</body>
+</html>

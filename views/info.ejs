@@ -1,0 +1,538 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Cado</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="icon" href="/favicon.ico" sizes="any">
+    <link rel="icon" type="image/png" href="/icons/icon-192.png?v=2">
+    <link rel="manifest" href="/manifest.webmanifest?v=3">
+    <link rel="apple-touch-icon" href="/apple-touch-icon.png?v=2">
+    <link rel="apple-touch-icon-precomposed" href="/apple-touch-icon-precomposed.png?v=2">
+    <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon-180x180.png?v=2">
+    <link rel="apple-touch-icon" sizes="167x167" href="/icons/apple-touch-icon-167.png?v=2">
+    <link rel="apple-touch-icon" sizes="152x152" href="/apple-touch-icon-152x152.png?v=2">
+    <link rel="apple-touch-icon" sizes="120x120" href="/apple-touch-icon-120x120.png?v=2">
+    <meta name="theme-color" content="#090E1E">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-title" content="Cado">
+
+</head>
+<body>
+
+<style>
+    :root {
+        --background-color: hsl(208.7, 50%, 90%);
+        --shadow-color: hsl(208.7, 20%, 65%);
+        --input-bg-color: hsl(208.7, 20%, 80%);
+        --input-icon-color: hsl(208.7, 20%, 50%);
+        --outline-color: hsl(208.7, 100%, 50%);
+        --check-color: hsl(202, 100%, 53%);
+    }
+    body {
+        background: linear-gradient(180deg, #8e44ad, #3498db);
+        height:calc(100vh);
+        color:#fff;
+        font-family: 'Open Sans', sans-serif !important;
+    }
+    form {
+        position:absolute;
+        top:50%;
+        left:50%;
+        transform:translate(-50%, -50%);
+        background: rgba(0,0,0,0.5);
+        padding:30px;
+        width:340px;
+        text-align:center;
+        border-radius:16px;
+        box-shadow:0 0 8px #000;
+    }
+    input {
+        display:block;
+        margin:auto;
+        margin-bottom:16px;
+        padding:12px 32px;
+        background:none;
+        border:none;
+        border-bottom:3px solid #fff;
+        width:160px;
+        color:#fff;
+        outline:none;
+        letter-spacing:2px;
+        font-size:15px;
+        text-align:center;
+        transition:0.25s;
+    }
+    textarea{
+        background-color: rgb(130 114 155 / 26%);
+        color: #eee;
+        border: solid #eee 1px;
+    }
+    input::placeholder {
+        color:#eee;
+    }
+    textarea::placeholder {
+        color:#eee;
+    }
+    input:focus {
+        width:260px;
+        border-color:#3498db;
+    }
+    button {
+        background:linear-gradient(90deg, #8e44ad, #3498db);
+        padding:20px 48px;
+        font-size:16px;
+        font-weight:bold;
+        color:#fff;
+        letter-spacing: 2px;
+        text-transform:uppercase;
+        border:none;
+        text-align: center;
+        border-radius:32px;
+        outline:none;
+    }
+    button:hover {
+        cursor:pointer;
+    }
+    a {
+        color:#fff;
+        font-family:cursive;
+        letter-spacing:1px;
+    }
+    a:hover {
+        color:#3498db;
+    }
+
+    .personal-image{
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        flex-direction: column;
+
+    }
+    .avatar-input {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        transition: 0.2s ease all;
+        width: 100px;
+        height: 100px;
+        padding: 4px;
+        position: relative;
+        margin-bottom: 10px;
+    }
+
+    .avatar-input__label {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        width: 100%;
+        height: 100%;
+        border-radius: 50%;
+        position: relative;
+        transition: 0.4s ease all;
+
+        overflow: hidden;
+
+        cursor: pointer;
+        z-index: 1;
+    }
+
+    .avatar-input--dragover,
+    .avatar-input--uploading,
+    .avatar-input--success,
+    .avatar-input:active {
+        transform: scale(0.9);
+    }
+
+    .avatar-input:active .avatar-input__label {
+        box-shadow: none;
+    }
+
+    .avatar-input--dragover .avatar-input__label,
+    .avatar-input--uploading .avatar-input__label,
+    .avatar-input--success .avatar-input__label {
+        box-shadow: none;
+        filter: brightness(0.5);
+    }
+
+    .avatar-input__input {
+        display: none;
+    }
+
+    .avatar-input__icon {
+        width: 100%;
+        height: 100%;
+        display: flex;
+        align-items: flex-end;
+        justify-content: center;
+        overflow: hidden;
+        color: var(--input-icon-color);
+        background: var(--input-bg-color);
+        transition: 0.2s ease all;
+    }
+
+    .avatar-input__icon i {
+        font-size: 80%;
+        position: relative;
+        bottom: -6%;
+    }
+
+    .avatar-input__preview {
+        position: absolute;
+        z-index: 2;
+        top: 0;
+        left: 0;
+        object-fit: cover;
+        width: 100%;
+        height: 100%;
+        transition: 0.2s ease all;
+        transform: scale(1.05);
+    }
+
+    .avatar-input__outline {
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        stroke-opacity: 0;
+        z-index: 2;
+        width: 100%;
+        height: 100%;
+        color: var(--outline-color);
+        transition: 0.05s linear all;
+        pointer-events: none;
+    }
+
+    .avatar-input--uploading .avatar-input__outline,
+    .avatar-input--success .avatar-input__outline {
+        stroke-opacity: 1;
+    }
+
+    .avatar-input--uploading .avatar-input__percentage {
+        opacity: 1;
+    }
+
+    .avatar-input__percentage {
+        position: absolute;
+        opacity: 0;
+        z-index: 2;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        font-family: Arial, Helvetica, sans-serif;
+        color: white;
+        font-weight: bold;
+        transition: 0.25s ease opacity;
+        pointer-events: none;
+    }
+
+    .avatar-input__success {
+        position: absolute;
+        z-index: 2;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        font-family: Arial, Helvetica, sans-serif;
+        color: white;
+        transition: 0.25s ease opacity;
+        width: 40%;
+        pointer-events: none;
+    }
+
+    .avatar-input__success-icon {
+        opacity: 0;
+        transform: scale(0);
+        transition: 0.4s cubic-bezier(0.34, 1.56, 0.64, 1) all;
+        transition-delay: 100ms;
+        color: var(--check-color);
+        font-size: 40px;
+    }
+    .error{
+        display: block;
+        padding: 5px;
+        color:red;
+    }
+
+    .avatar-input--success .avatar-input__success-icon {
+        opacity: 1;
+        transform: scale(1);
+    }
+
+</style>
+<div class="content">
+    <form id="Update-form">
+        <h1>Complete </h1>
+        <input type='text' maxlength="12" id="firstName"  placeholder='First Name'>
+        <input type='text' maxlength="12" id="lastName"  placeholder='Last Name'>
+        <textarea name=""  id="about" placeholder="Tell About You ..." cols="30" rows="10">
+
+        </textarea>
+        <div class="personal-image">
+            <div class="avatar-input">
+                <label class="avatar-input__label" for="file-input">
+                    <input type="file" id="file-input" value="" class="avatar-input__input" />
+                    <div class="avatar-input__icon">
+                        <i class="fa-solid fa-user"></i>
+                    </div>
+                </label>
+            </div>
+            <div class="error" id="error">
+
+            </div>
+        </div>
+        <input type='hidden' maxlength="12" value="" id="avatar-hidden">
+        <button>Submit</button>
+    </form>
+</div>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.7.1/jquery.min.js" integrity="sha512-v2CJ7UaYy4JwqLDIrZUI/4hqeoQieOmAZNXBeQyjo21dadnwR+8ZaIJVT8EE2iyI61OV8e6M8PP2/4hpQINQ/g==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+
+<script>
+    document.getElementsByTagName('textarea').value = ''
+    const display = document.getElementById('error')
+    const form = document.getElementById('Update-form')
+    form.addEventListener('submit', async function (e) {
+        const firstName = document.getElementById('firstName')
+        const lastName = document.getElementById('lastName')
+        const about = document.getElementById('about')
+        const avatar = document.getElementById('avatar-hidden')
+        e.preventDefault();
+        if (avatar.value &&  firstName.value && lastName.value){
+            try {
+                const res = await fetch('/api/auth/update', {
+                    method: 'POST',
+                    headers:{
+                        'token':localStorage.getItem('token'),
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({firstName: firstName.value,lastName:lastName.value, avatar: avatar.value,about:about.value}),
+                })
+                const data = await res.json()
+                if (res.status === 400 || res.status === 401) {
+                    return display.textContent = `${data.message}. ${data.error ? data.error : ''}`
+                }
+
+                location.assign('/')
+
+            } catch (err) {
+
+            }
+        }else {
+            console.log(display)
+            display.textContent ='Please Fill All Fields'
+            display.style.display ='block'
+            console.log(display)
+
+        }
+    });
+
+
+    function setImage(data){
+        document.getElementById('avatar-hidden').value =data.id
+        display.style.display ='none'
+    }function errorHandle(e){
+        console.log(e.responseJSON)
+        display.style.display ='block'
+        display.textContent= e.responseJSON.message
+        if (e.responseJSON.reason === 1 ){
+            let PreviewImage = document.querySelector('.avatar-input__preview')
+            if (PreviewImage){
+                PreviewImage.remove()
+            }
+        }
+
+    }
+    async function SetFile(file) {
+        const formData = new FormData();
+        formData.append('file', file);
+            $.ajax({
+                type: "POST",
+                url: '/upload_files',
+                contentType:false,
+                processData: false,
+                data:formData,
+                success:setImage,
+                error:errorHandle
+            });
+    }
+
+
+</script>
+<script>
+    class AvatarInput {
+        percentage = 0
+
+        constructor(el) {
+            this.root = el
+            this.label = el.querySelector('.avatar-input__label')
+            this.input = el.querySelector('.avatar-input__input')
+            this.addOutline()
+            this.addPercentageText()
+            this.addPreviewImage()
+            this.addSuccessMessage()
+
+            this.root.addEventListener('dragover', this.onDragOver.bind(this))
+            this.root.addEventListener('dragleave', this.onDragLeave.bind(this))
+            this.root.addEventListener('drop', this.onDrop.bind(this))
+
+            this.reader = new FileReader()
+            this.reader.addEventListener('load', this.onFileRead.bind(this))
+
+            this.input.addEventListener('input', this.onFileSelect.bind(this))
+        }
+
+        onDragOver(e) {
+            e.preventDefault()
+            this.root.classList.add('avatar-input--dragover')
+        }
+
+        onDragLeave() {
+            this.removeDragoverState()
+        }
+
+        removeDragoverState() {
+            this.root.classList.remove('avatar-input--dragover')
+        }
+
+        addPercentageText() {
+            this.percentageText = document.createElement('div')
+            this.percentageText.classList.add('avatar-input__percentage')
+            this.percentageText.textContent = '0%'
+            this.percentageText.style.fontSize = `${this.root.clientWidth * 0.2}px`
+            this.root.appendChild(this.percentageText)
+        }
+
+        startUploading() {
+            setTimeout(() => {
+                this.uploadTick()
+            }, 600)
+        }
+
+        addSuccessMessage() {
+            this.success = document.createElement('div')
+            this.success.classList.add('avatar-input__success')
+
+            this.successIcon = document.createElement('i')
+            this.successIcon.classList.add('fa-solid', 'fa-check', 'avatar-input__success-icon')
+
+            this.success.appendChild(this.successIcon)
+            this.root.appendChild(this.success)
+        }
+
+        onDone() {
+            this.root.classList.remove('avatar-input--uploading')
+            this.root.classList.add('avatar-input--success')
+            setTimeout(() => {
+                this.percentage = 0
+                this.updateText()
+            }, 200)
+            setTimeout(() => {
+                this.root.classList.remove('avatar-input--success')
+                this.updateOutline()
+            }, 1200)
+        }
+
+        uploadTick() {
+            if (this.percentage === 100) {
+                setTimeout(() => {
+                    this.onDone()
+                }, 400)
+                return
+            }
+            this.percentage++
+            this.updateOutline()
+            this.updateText()
+            requestAnimationFrame(this.uploadTick.bind(this))
+        }
+
+        updateText() {
+            this.percentageText.textContent = this.percentage + '%'
+        }
+
+        updateOutline() {
+            this.outline.style.setProperty(
+                '--outline-stroke-offset',
+                this.totalOutlineStrokeLength -
+                this.totalOutlineStrokeLength * this.percentage * 0.01
+            )
+        }
+
+        addOutline() {
+            const rootWidth = this.root.clientWidth
+            const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg')
+
+            svg.setAttribute('viewBox', `0 0 ${rootWidth} ${rootWidth}`)
+            svg.classList.add('avatar-input__outline')
+
+            const svgCircle = document.createElementNS(
+                'http://www.w3.org/2000/svg',
+                'circle'
+            )
+            svgCircle.setAttribute('cx', '50%')
+            svgCircle.setAttribute('cy', '50%')
+            svgCircle.setAttribute('r', rootWidth / 2 - 3)
+            svgCircle.setAttribute('fill', 'none')
+            svgCircle.setAttribute('stroke', 'currentColor')
+            svgCircle.setAttribute('stroke-width', '3px')
+
+            svg.appendChild(svgCircle)
+            this.outline = svg
+            this.root.appendChild(svg)
+
+            this.totalOutlineStrokeLength = Math.ceil(svgCircle.getTotalLength()) + 2
+            svg.style.setProperty(
+                '--outline-stroke-offset',
+                this.totalOutlineStrokeLength
+            )
+            svg.style.setProperty(
+                '--outline-total-stroke',
+                this.totalOutlineStrokeLength
+            )
+        }
+
+        onDrop(e) {
+            e.preventDefault()
+            const items = [...e.dataTransfer.items]
+            if (!items || items?.[0].kind !== 'file') return
+            const file = items[0].getAsFile()
+            this.reader.readAsDataURL(file)
+            setTimeout(() => {
+                this.removeDragoverState()
+                this.root.classList.add('avatar-input--uploading')
+            }, 300)
+        }
+
+        onFileSelect() {
+            const file = this.input.files[0]
+            if (file) {
+                SetFile(file)
+                this.root.classList.add('avatar-input--uploading')
+                this.reader.readAsDataURL(file)
+            }
+        }
+        setPreviewImage(src) {
+            this.previewImage.src = src
+        }
+
+        addPreviewImage() {
+            this.previewImage = document.createElement('img')
+            this.previewImage.classList.add('avatar-input__preview')
+            this.label.appendChild(this.previewImage)
+        }
+
+        onFileRead() {
+            const image = this.reader.result
+            this.setPreviewImage(image)
+            this.startUploading()
+        }
+
+
+    }
+
+    Array.from(document.querySelectorAll('.avatar-input')).forEach(
+        (el) => new AvatarInput(el)
+    )
+
+</script>
+</body>
+</html>
