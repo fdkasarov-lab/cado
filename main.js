@@ -477,6 +477,12 @@ app.post('/fcm/token', async (req, res) => {
     }
 })
 
+// ── Logout ─────────────────────────────────────────────────────────────────
+app.get('/logout', (req, res) => {
+    res.clearCookie('jwt')
+    res.redirect('/login')
+})
+
 // ── FCM Token Removal (on logout) ─────────────────────────────────────────
 app.post('/fcm/token/remove', async (req, res) => {
     const { username, token } = req.body
