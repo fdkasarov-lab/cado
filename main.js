@@ -398,7 +398,7 @@ app.get("/register", (req, res) =>{
 
         })
     }else {
-        res.render("register")
+        res.render("Register")
     }
 })
 
