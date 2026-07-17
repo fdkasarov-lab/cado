@@ -376,20 +376,17 @@ io.on('connection', (socket) => {
 
 app.get('/', (req, res) => {
     const Token = getVerifiedToken(req, res)
-    if (Token){
-        database.getUser(Token.id, Token.username).then(data=>{
-            let UserData = data.pop()
-            if (!UserData) {
-                res.clearCookie('jwt')
-                return res.redirect('/login')
-            }
-            res.render('index',{
-                UserInfo: UserData
-            })
+    if (!Token) return
+    database.getUser(Token.id, Token.username).then(data=>{
+        let UserData = data.pop()
+        if (!UserData) {
+            res.clearCookie('jwt')
+            return res.redirect('/login')
+        }
+        res.render('index',{
+            UserInfo: UserData
         })
-    }else {
-        res.redirect('login')
-    }
+    })
 })
 
 app.get("/register", (req, res) =>{
@@ -408,25 +405,22 @@ app.get("/register", (req, res) =>{
 app.get("/register/continue", (req, res) => {
 
     const Token = getVerifiedToken(req, res)
-    if (Token){
-        database.getUser(Token.id, Token.username).then(data=>{
-            let UserData = data.pop()
-            if (!UserData) {
-                res.clearCookie('jwt')
-                return res.redirect('/login')
-            }
-            if (UserData.firstName && UserData.lastName && UserData.avatar){
-                res.redirect('/')
-            }else {
-                res.render("info",{
-                    UserInfo:UserData
-                })
-            }
+    if (!Token) return
+    database.getUser(Token.id, Token.username).then(data=>{
+        let UserData = data.pop()
+        if (!UserData) {
+            res.clearCookie('jwt')
+            return res.redirect('/login')
+        }
+        if (UserData.firstName && UserData.lastName && UserData.avatar){
+            res.redirect('/')
+        }else {
+            res.render("info",{
+                UserInfo:UserData
+            })
+        }
 
-        })
-    }else {
-        res.redirect('login')
-    }
+    })
 })
 
 app.get("/login", (req, res) => {
