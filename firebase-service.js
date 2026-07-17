@@ -12,6 +12,7 @@
 
 const { initializeApp, cert } = require('firebase-admin')
 const { getMessaging } = require('firebase-admin/messaging')
+const { getStorage } = require('firebase-admin/storage')
 const path  = require('path')
 
 // ── Initialize once ──────────────────────────────────────────────────────────
@@ -210,4 +211,45 @@ async function notifyCall(calleeUsername, callerUsername, room, getUserTokens, r
     }
 }
 
-module.exports = { sendPush, notifyMessage, notifyCall }
+/**
+ * Upload a file buffer to Firebase Storage and return its public URL.
+ * @param {Buffer}  buffer     - Raw file bytes
+ * @param {string}  filename   - Dest filename (e.g. "file-1234.jpg")
+ * @param {string}  [mimetype] - Content type
+ * @returns {Promise<string>}  Public download URL
+ */
+async function uploadFile(buffer, filename, mimetype) {
+    if (!initialized) throw new Error('Firebase not initialized')
+    const bucket = getStorage().bucket()
+    const file = bucket.file('uploads/' + filename)
+    await file.save(buffer, {
+        metadata: { contentType: mimetype || 'application/octet-stream' },
+    })
+    try {
+        await file.makePublic()
+    } catch (e) {
+        // If makePublic fails (org policy), fall back to signed URL
+        console.warn('[Storage] makePublic failed, using signed URL:', e.message)
+        const [signedUrl] = await file.getSignedUrl({
+            action: 'read',
+            expires: '01-01-2035',
+        })
+        return signedUrl
+    }
+    return 'https://storage.googleapis.com/' + bucket.name + '/uploads/' + filename
+}
+
+/**
+ * Delete a file from Firebase Storage.
+ * @param {string} filename - Just the filename (not full URL)
+ */
+async function deleteFile(filename) {
+    try {
+        const bucket = getStorage().bucket()
+        await bucket.file('uploads/' + filename).delete()
+    } catch (e) {
+        // file might not exist, that's ok
+    }
+}
+
+module.exports = { sendPush, notifyMessage, notifyCall, uploadFile, deleteFile }

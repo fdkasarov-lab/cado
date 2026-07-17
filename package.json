@@ -24,6 +24,7 @@
     "@capacitor/cli": "^5.7.1",
     "@capacitor/core": "^5.7.1",
     "@capacitor/ios": "^5.7.1",
+    "@google-cloud/storage": "^7.21.0",
     "androidjs": "^1.0.12",
     "bcryptjs": "^2.4.3",
     "cookie-parser": "^1.4.6",

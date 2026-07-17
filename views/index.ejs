@@ -585,7 +585,7 @@
                 list.innerHTML = contacts.map(c => {
                     const name = [c.firstName, c.lastName].filter(Boolean).join(' ') || c.username
                     const initial = (c.firstName || c.username).charAt(0).toUpperCase()
-                    const avatar = c.avatar ? `<img src="/uploads/${c.avatar}" alt="${name}">` : ''
+                    const avatar = c.avatar ? `<img src="${fileUrl(c.avatar)}" alt="${name}">` : ''
                     return `<li class="contact-item" onclick="OpenChat('${c.username}')">
                     <div class="contact-item-avatar">
                         ${avatar || `<div class="avatar-fallback-sm">${initial}</div>`}
@@ -657,12 +657,12 @@
             .then(([userInfo, contactsData]) => {
                 if (!userInfo) return
                 const fullName = [userInfo.firstName, userInfo.lastName].filter(Boolean).join(' ') || userInfo.username
-                const avatarSrc = userInfo.avatar ? '/uploads/' + userInfo.avatar : null
+                const avatarSrc = userInfo.avatar ? fileUrl(userInfo.avatar) : null
                 const initial = (userInfo.firstName || userInfo.username).charAt(0).toUpperCase()
                 const contacts = (contactsData.contacts || []).map(c => {
                     const cName = [c.firstName, c.lastName].filter(Boolean).join(' ') || c.username
                     const cInit = (c.firstName || c.username).charAt(0).toUpperCase()
-                    const cAvatar = c.avatar ? `<img src="/uploads/${c.avatar}" alt="${cName}">` : ''
+                    const cAvatar = c.avatar ? `<img src="${fileUrl(c.avatar)}" alt="${cName}">` : ''
                     return `<a class="profile-contact-item" href="/profile/${c.username}">
                 <div class="profile-contact-avatar">
                     ${cAvatar || `<div class="profile-avatar-fallback" style="width:40px;height:40px;font-size:16px;">${cInit}</div>`}
@@ -1084,7 +1084,7 @@
             var result = await response.json()
             var filename = result.files && result.files[0]
             if (!filename) throw new Error('Upload failed')
-            scope.querySelector('#cfgBgImage').value = '/uploads/' + filename
+            scope.querySelector('#cfgBgImage').value = filename.startsWith('http') ? filename : '/uploads/' + filename
             scope.querySelector('#cfgBgMode').value = 'image'
             if (label) label.textContent = file.name
             applyCfgPreview(scope)
@@ -1809,7 +1809,7 @@ const form   = document.getElementById('form')
                     ImageBox.appendChild(video)
                 } else {
                     let image = document.createElement('img')
-                    image.setAttribute('src', files[0].startsWith('stickers/') ? files[0] : 'uploads/' + files[0])
+                    image.setAttribute('src', files[0].startsWith('stickers/') ? files[0] : fileUrl(files[0]))
                     image.classList.add('image')
                     image.setAttribute('onclick', 'openImage(this)')
                     image.setAttribute('data-img', files[0])
@@ -1829,7 +1829,7 @@ const form   = document.getElementById('form')
                         ImageBox.appendChild(video)
                     } else {
                         let image = document.createElement('img')
-                        image.setAttribute('src', item.startsWith('stickers/') ? item : 'uploads/' + item)
+                        image.setAttribute('src', item.startsWith('stickers/') ? item : fileUrl(item))
                         image.classList.add('image')
                         image.setAttribute('onclick', 'openImage(this)')
                         image.setAttribute('data-img', item)

@@ -17,14 +17,9 @@ app.set('view engine', 'ejs')
 // const server = http.createServer(app);
 const {Server}  = require("socket.io")
 const multer = require("multer");
-const storage = multer.diskStorage({
-    destination: function (req, file, cb) {
-        cb(null, 'public/uploads/'); // Destination folder for uploaded files
-    },
-    filename: function (req, file, cb) {
-        cb(null, file.fieldname + '-' + Date.now() + path.extname(file.originalname)); // File naming
-    },
-});
+function genFilename(fieldname, originalname) {
+    return fieldname + '-' + Date.now() + path.extname(originalname)
+}
 
 
 const allowedMimes = [
@@ -42,7 +37,7 @@ const allowedMimes = [
 ]
 
 const upload = multer({
-    storage: storage,
+    storage: multer.memoryStorage(),
     fileFilter: function (req, file, callback) {
         if (!allowedMimes.includes(file.mimetype)) {
             return callback(new Error('File type not allowed'));
@@ -581,37 +576,44 @@ app.get('/calls/history', async (req, res) => {
 //
 // });
 app.post('/upload_files', (req, res) => {
-    upload.single('file')(req, res, function (err) {
-        if (err instanceof multer.MulterError) {
-            // A Multer error occurred (e.g., file size limit)
-            return res.status(400).json({ message: err.message,reason:1 });
-        } else if (err) {
-            // An error occurred that is not related to Multer
-            return res.status(400).json({ message: 'Only Images Allowed',reason:2 });
+    upload.single('file')(req, res, async function (err) {
+        try {
+            if (err instanceof multer.MulterError) {
+                return res.status(400).json({ message: err.message, reason: 1 });
+            } else if (err) {
+                return res.status(400).json({ message: 'File type not allowed', reason: 2 });
+            }
+            if (!req.file) {
+                return res.status(400).json({ error: 'No file uploaded.' });
+            }
+            const filename = genFilename('file', req.file.originalname)
+            const url = await FCM.uploadFile(req.file.buffer, filename, req.file.mimetype)
+            res.status(200).json({ message: 'File uploaded successfully', url })
+        } catch (e) {
+            console.error('upload_files error:', e)
+            res.status(500).json({ message: 'Upload failed' })
         }
-
-        if (!req.file) {
-            return res.status(400).json({ error: 'No file uploaded.' });
-        }
-
-        res.status(200).json({ message: 'File uploaded successfully', id: req.file.filename });
     });
 });
 app.post('/chat_upload', (req, res) => {
-    upload.array('files', 10)(req, res, function (err) {
-        if (err instanceof multer.MulterError) {
-            return res.status(400).json({ message: err.message, reason: 1 });
-        } else if (err) {
-            return res.status(400).json({ message: 'File type not allowed', reason: 2 });
+    upload.array('files', 10)(req, res, async function (err) {
+        try {
+            if (err instanceof multer.MulterError) {
+                return res.status(400).json({ message: err.message, reason: 1 });
+            } else if (err) {
+                return res.status(400).json({ message: 'File type not allowed', reason: 2 });
+            }
+            if (!req.files || req.files.length === 0) {
+                return res.status(400).json({ error: 'No files uploaded.' });
+            }
+            const urls = await Promise.all(req.files.map(f =>
+                FCM.uploadFile(f.buffer, genFilename('files', f.originalname), f.mimetype)
+            ))
+            res.status(200).json({ message: 'Files uploaded successfully', files: urls })
+        } catch (e) {
+            console.error('chat_upload error:', e)
+            res.status(500).json({ message: 'Upload failed' })
         }
-
-        if (!req.files || req.files.length === 0) {
-            return res.status(400).json({ error: 'No files uploaded.' });
-        }
-
-        const fileIds = req.files.map(file => file.filename);
-
-        res.status(200).json({ message: 'Files uploaded successfully', files: fileIds });
     });
 });
 

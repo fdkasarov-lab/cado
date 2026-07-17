@@ -1,9 +1,8 @@
 const express = require('express');
 const router = express.Router();
-const fs = require('fs');
-const path = require('path');
 const multer = require('multer');
 const User = require('../model/user');
+const FCM = require('../../firebase-service');
 const { ensureAuthenticated } = require('./authMiddleware');
 
 // NOTE (please verify against your actual auth setup):
@@ -22,24 +21,15 @@ try {
     bcrypt = null; // password-change route will report a clear error instead of crashing
 }
 
-const UPLOAD_DIR = path.join('public', 'uploads');
 const MAX_NAME_LEN = 20;
 const MAX_ABOUT_LEN = 300;
 
-// ── Multer config (same destination as before) ──────────────────────────
-const storage = multer.diskStorage({
-    destination: (req, file, cb) => {
-        cb(null, UPLOAD_DIR + '/');
-    },
-    filename: (req, file, cb) => {
-        cb(null, file.fieldname + '-' + Date.now() + path.extname(file.originalname));
-    }
-});
+// ── Multer config (memory storage — files uploaded to Firebase Storage) ─
 const upload = multer({
-    storage,
+    storage: multer.memoryStorage(),
     fileFilter: (req, file, cb) => {
-        const ext = path.extname(file.originalname).toLowerCase();
-        if (ext !== '.png' && ext !== '.jpg' && ext !== '.jpeg') {
+        const ext = (file.originalname || '').toLowerCase();
+        if (!ext.endsWith('.png') && !ext.endsWith('.jpg') && !ext.endsWith('.jpeg')) {
             return cb(new Error('Only Images Allowed'));
         }
         cb(null, true);
@@ -47,16 +37,9 @@ const upload = multer({
     limits: { fileSize: 10000000 } // 10MB
 });
 
-// Deletes an old avatar file from disk. Never throws — a missing file is not
-// a fatal error, it just means there was nothing to clean up.
-function removeAvatarFile(filename) {
-    if (!filename) return;
-    const filePath = path.join(UPLOAD_DIR, filename);
-    fs.unlink(filePath, (err) => {
-        if (err && err.code !== 'ENOENT') {
-            console.error('Failed to remove old avatar:', err);
-        }
-    });
+function genAvatarFilename(originalname) {
+    const ext = originalname.includes('.') ? originalname.split('.').pop() : 'jpg'
+    return 'avatar-' + Date.now() + '.' + ext
 }
 
 function trimOrEmpty(value) {
@@ -108,13 +91,11 @@ router.post('/edit', ensureAuthenticated, upload.single('avatar'), async (req, r
         const about = trimOrEmpty(req.body.about).slice(0, MAX_ABOUT_LEN);
 
         if (!firstName || !lastName) {
-            if (req.file) removeAvatarFile(req.file.filename); // don't orphan the uploaded file
             return res.redirect('/profile/edit?error=' + encodeURIComponent('First and last name are required.'));
         }
 
         const existing = await User.findById(userId);
         if (!existing) {
-            if (req.file) removeAvatarFile(req.file.filename);
             return res.status(404).send('User not found');
         }
 
@@ -122,10 +103,10 @@ router.post('/edit', ensureAuthenticated, upload.single('avatar'), async (req, r
         const removeAvatarRequested = req.body.removeAvatar === 'on' || req.body.removeAvatar === 'true';
 
         if (req.file) {
-            update.avatar = req.file.filename; // store just filename
-            removeAvatarFile(existing.avatar); // clean up the old file, it's no longer referenced
+            const filename = genAvatarFilename(req.file.originalname)
+            const url = await FCM.uploadFile(req.file.buffer, filename, req.file.mimetype)
+            update.avatar = url
         } else if (removeAvatarRequested && existing.avatar) {
-            removeAvatarFile(existing.avatar);
             update.avatar = null;
         }
 
@@ -135,7 +116,6 @@ router.post('/edit', ensureAuthenticated, upload.single('avatar'), async (req, r
         res.redirect('/profile?success=' + encodeURIComponent('Profile updated.'));
     } catch (err) {
         console.error(err);
-        if (req.file) removeAvatarFile(req.file.filename);
         const message = err.message === 'Only Images Allowed'
             ? 'Only .png, .jpg or .jpeg images are allowed.'
             : 'Something went wrong updating your profile.';
@@ -190,7 +170,6 @@ router.post('/delete', ensureAuthenticated, async (req, res) => {
         const user = await User.findById(req.user.id);
         if (!user) return res.redirect('/login');
 
-        removeAvatarFile(user.avatar);
         await User.findByIdAndDelete(req.user.id);
 
         // Support both callback-style (passport < 0.6) and promise-style logout.

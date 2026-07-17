@@ -8,6 +8,7 @@
     <link rel="icon" type="image/png" href="/icons/icon-192.png?v=2">
     <link rel="manifest" href="/manifest.webmanifest?v=3">
     <link rel="apple-touch-icon" href="/apple-touch-icon.png?v=2">
+    <% function imgUrl(p) { return p && p.startsWith('http') ? p : '/uploads/' + p } %>
     <meta name="theme-color" content="#0D1117">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-title" content="Cado">
@@ -31,7 +32,7 @@
         <div class="profile-hero">
             <div class="profile-avatar-wrap">
                 <% if (profileUser.avatar) { %>
-                    <img class="profile-avatar-img" src="/uploads/<%= profileUser.avatar %>" alt="Avatar">
+                    <img class="profile-avatar-img" src="<%= imgUrl(profileUser.avatar) %>" alt="Avatar">
                 <% } else { %>
                     <div class="profile-avatar-fallback">
                         <%= (profileUser.firstName ? profileUser.firstName[0] : profileUser.username[0]).toUpperCase() %>
@@ -140,7 +141,7 @@ function openSharedMedia(username) {
             data.media.forEach(item => {
                 const div = document.createElement('div');
                 div.className = 'shared-media-item';
-                div.innerHTML = '<img src="/uploads/' + item.file + '" loading="lazy">';
+                div.innerHTML = '<img src="' + (item.file && item.file.startsWith('http') ? item.file : '/uploads/' + item.file) + '" loading="lazy">';
                 div.onclick = function () { openImage(this.querySelector('img')); };
                 grid.appendChild(div);
             });
@@ -255,7 +256,7 @@ function openImage(element) {
     Array.from(element.parentNode.children).forEach(function (item) {
         if (!item.dataset || !item.dataset.img) return;
         const img = document.createElement('img');
-        img.setAttribute('src', 'uploads/' + item.dataset.img);
+        img.setAttribute('src', item.dataset.img && item.dataset.img.startsWith('http') ? item.dataset.img : 'uploads/' + (item.dataset.img || ''));
         img.style.width = '100%';
         ImageBox.appendChild(img);
     });

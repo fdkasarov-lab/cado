@@ -1,3 +1,7 @@
+function fileUrl(path) {
+    return path && path.startsWith('http') ? path : 'uploads/' + path
+}
+
 function shortUsername(username) {
     return String(username || '').split('@')[0]
 }
@@ -32,7 +36,7 @@ function applyUserIdentityToChat(userInfo) {
         if (userInfo.avatar) {
             const img = button.querySelector('.user-avatar')
             if (img) {
-                img.setAttribute('src', 'uploads/' + userInfo.avatar)
+                img.setAttribute('src', fileUrl(userInfo.avatar))
                 img.setAttribute('alt', displayName)
                 img.style.display = 'block'
             }
@@ -346,7 +350,7 @@ function sortMessages(data){
                             ImageBox.appendChild(video)
                         } else {
                             let image = document.createElement('img')
-                            image.setAttribute('src', message.files[0].startsWith('stickers/') ? message.files[0] : 'uploads/' + message.files[0])
+                            image.setAttribute('src', message.files[0].startsWith('stickers/') ? message.files[0] : fileUrl(message.files[0]))
                             image.classList.add('image')
                             image.setAttribute('onclick', 'openImage(this)')
                             image.setAttribute('data-img', message.files[0])
@@ -366,8 +370,8 @@ function sortMessages(data){
                                 ImageBox.appendChild(video)
                             } else {
                                 let image = document.createElement('img')
-                                image.setAttribute('src', item.startsWith('stickers/') ? item : 'uploads/' + item)
-                                image.classList.add('image')
+                image.setAttribute('src', item.startsWith('stickers/') ? item : fileUrl(item))
+                image.classList.add('image')
                                 image.setAttribute('onclick', 'openImage(this)')
                                 image.setAttribute('data-img', item)
                                 ImageBox.appendChild(image)
@@ -422,7 +426,7 @@ function viewProfile(username){
             if (!userInfo) return
 
             const fullName = [userInfo.firstName, userInfo.lastName].filter(Boolean).join(' ') || username
-            const avatarSrc = userInfo.avatar ? 'uploads/' + userInfo.avatar : null
+            const avatarSrc = userInfo.avatar ? fileUrl(userInfo.avatar) : null
             const initial = username.charAt(0).toUpperCase()
 
             const isContact = status.isContact || false
@@ -587,7 +591,7 @@ function viewMyProfile() {
             if (!userInfo) return
 
             const fullName = [userInfo.firstName, userInfo.lastName].filter(Boolean).join(' ') || userInfo.username
-            const avatarSrc = userInfo.avatar ? 'uploads/' + userInfo.avatar : null
+            const avatarSrc = userInfo.avatar ? fileUrl(userInfo.avatar) : null
             const initial = (userInfo.firstName || userInfo.username).charAt(0).toUpperCase()
             const contacts = contactsData?.contacts || []
             const contactsCount = contacts.length
@@ -597,7 +601,7 @@ function viewMyProfile() {
                 contactsHtml = contacts.map(c => {
                     const cName = [c.firstName, c.lastName].filter(Boolean).join(' ') || c.username
                     const cInitial = (c.firstName || c.username).charAt(0).toUpperCase()
-                    const cAvatar = c.avatar ? `<img src="/uploads/${c.avatar}" alt="${cName}">` : ''
+                    const cAvatar = c.avatar ? `<img src="${fileUrl(c.avatar)}" alt="${cName}">` : ''
                     return `<a class="profile-contact-item" href="/profile/${c.username}">
                         <div class="profile-contact-avatar">
                             ${cAvatar || `<div class="profile-avatar-fallback" style="width:40px;height:40px;font-size:16px;">${cInitial}</div>`}
@@ -767,7 +771,7 @@ function openSharedMediaPanel(username) {
             data.media.forEach(item => {
                 const div = document.createElement('div')
                 div.className = 'shared-media-item'
-                div.innerHTML = '<img src="/uploads/' + item.file + '" loading="lazy">'
+                div.innerHTML = '<img src="' + fileUrl(item.file) + '" loading="lazy">'
                 div.onclick = function () { openImage(this.querySelector('img')) }
                 grid.appendChild(div)
             })
@@ -894,7 +898,7 @@ function FindUsers(username){
                 let Username = document.createElement('div')
                 Username.classList.add('FindUserUsername')
                 Username.textContent = displayNameFromUser(item)
-                userImg.setAttribute('src', 'uploads/'+item.avatar)
+                userImg.setAttribute('src', fileUrl(item.avatar))
                 li.appendChild(userImg)
                 li.appendChild(Username)
                 UserList.appendChild(li)
@@ -1145,7 +1149,7 @@ function appendLast(data)
                         ImageBox.appendChild(video)
                     } else {
                         let image = document.createElement('img')
-                        image.setAttribute('src', item.files[0].startsWith('stickers/') ? item.files[0] : 'uploads/' + item.files[0])
+                        image.setAttribute('src', item.files[0].startsWith('stickers/') ? item.files[0] : fileUrl(item.files[0]))
                         image.classList.add('image')
                         image.setAttribute('onclick', 'openImage(this)')
                         image.setAttribute('data-img', item.files[0])
@@ -1165,7 +1169,7 @@ function appendLast(data)
                             ImageBox.appendChild(video)
                         } else {
                             let image = document.createElement('img')
-                            image.setAttribute('src', item.startsWith('stickers/') ? item : 'uploads/' + item)
+                            image.setAttribute('src', item.startsWith('stickers/') ? item : fileUrl(item))
                             image.classList.add('image')
                             image.setAttribute('onclick', 'openImage(this)')
                             image.setAttribute('data-img', item)
@@ -1235,7 +1239,7 @@ function sortPage(data){
                     ImageBox.appendChild(video)
                 } else {
                     let image = document.createElement('img')
-                    image.setAttribute('src', item.files[0].startsWith('stickers/') ? item.files[0] : 'uploads/' + item.files[0])
+                    image.setAttribute('src', item.files[0].startsWith('stickers/') ? item.files[0] : fileUrl(item.files[0]))
                     image.classList.add('image')
                     image.setAttribute('onclick', 'openImage(this)')
                     image.setAttribute('data-img',  item.files[0])
@@ -1255,7 +1259,7 @@ function sortPage(data){
                         ImageBox.appendChild(video)
                     } else {
                         let image = document.createElement('img')
-                        image.setAttribute('src', item.startsWith('stickers/') ? item : 'uploads/' + item)
+                        image.setAttribute('src', item.startsWith('stickers/') ? item : fileUrl(item))
                         image.classList.add('image')
                         image.setAttribute('onclick', 'openImage(this)')
                         image.setAttribute('data-img',  item)
@@ -1311,7 +1315,7 @@ function openImage(element) {
         let image = document.createElement('img')
         let WrapperImage =document.createElement('div')
         // WrapperImage.classList.add('wrapper-image')
-        image.setAttribute('src', item.dataset.img.startsWith('stickers/') ? item.dataset.img : 'uploads/' + item.dataset.img)
+        image.setAttribute('src', item.dataset.img.startsWith('stickers/') ? item.dataset.img : fileUrl(item.dataset.img))
         image.style.width = '100%'
         // WrapperImage.appendChild(image)
         ImageBox.appendChild(image)
