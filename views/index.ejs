@@ -1579,7 +1579,7 @@ const E2E = {
 
     async _deriveKey(username) {
         await this._ready
-        if (!this._keyPair) return null
+        if (!this._keyPair) { console.warn('[E2E] _deriveKey: no _keyPair'); return null }
         const cacheKey = 'e2e_shared_' + username
         const cached = localStorage.getItem(cacheKey)
         if (cached) {
@@ -1587,12 +1587,14 @@ const E2E = {
             return await crypto.subtle.importKey('raw', raw, { name: 'AES-GCM' }, false, ['encrypt', 'decrypt'])
         }
         const resp = await fetch('/api/crypto/pubkey/' + encodeURIComponent(username))
-        if (!resp.ok) return null
+        if (!resp.ok) { console.warn('[E2E] _deriveKey: fetch failed for', username, resp.status); return null }
         const peerJwk = await resp.json()
+        console.log('[E2E] _deriveKey: peerJwk keys:', Object.keys(peerJwk).join(','), 'kty:', peerJwk.kty, 'crv:', peerJwk.crv)
         const peerKey = await crypto.subtle.importKey('jwk', peerJwk, { name: 'ECDH', namedCurve: 'P-256' }, true, [])
         const shared = await crypto.subtle.deriveBits({ name: 'ECDH', public: peerKey }, this._keyPair.privateKey, 256)
         const hash = await crypto.subtle.digest('SHA-256', shared)
         const bytes = new Uint8Array(hash)
+        console.log('[E2E] _deriveKey: derived key fingerprint:', Array.from(bytes.slice(0,4)).map(function(b){return b.toString(16).padStart(2,'0')}).join(''))
         localStorage.setItem(cacheKey, JSON.stringify(Array.from(bytes)))
         return await crypto.subtle.importKey('raw', bytes, { name: 'AES-GCM' }, false, ['encrypt', 'decrypt'])
     },
@@ -1613,8 +1615,10 @@ const E2E = {
         if (m === -1) return text
         const iv = new Uint8Array(atob(p.slice(0, m)).split('').map(function(c){return c.charCodeAt(0)}))
         const ct = new Uint8Array(atob(p.slice(m + 1)).split('').map(function(c){return c.charCodeAt(0)}))
+        console.log('[E2E] decrypt username:', username, 'iv len:', iv.length, 'ct len:', ct.length, 'ct hex0:', Array.from(ct.slice(0,4)).map(function(b){return b.toString(16).padStart(2,'0')}).join(''))
         const key = await this._deriveKey(username)
-        if (!key) return text
+        if (!key) { console.warn('[E2E] decrypt: no key for', username); return text }
+        console.log('[E2E] decrypt: key obtained, attempting decrypt')
         const plain = await crypto.subtle.decrypt({ name: 'AES-GCM', iv }, key, ct)
         return new TextDecoder().decode(plain)
     }

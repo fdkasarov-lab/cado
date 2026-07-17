@@ -711,7 +711,10 @@ app.get('/api/crypto/pubkey/:username', async (req, res) => {
     try {
         const user = await User.findOne({ username: req.params.username }).select('publicKey').lean()
         if (!user || !user.publicKey) return res.status(404).json({ error: 'No public key' })
-        res.json(user.publicKey)
+        var pk = typeof user.publicKey.toObject === 'function' ? user.publicKey.toObject() : user.publicKey
+        if (pk._id) delete pk._id
+        if (pk.__v) delete pk.__v
+        res.json(pk)
     } catch (err) {
         console.error('crypto pubkey get:', err)
         res.status(500).json({ error: 'Server error' })
