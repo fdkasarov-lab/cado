@@ -1578,11 +1578,12 @@ const E2E = {
 
     async _uploadPubKey(pubJwk) {
         try {
-            await fetch('/api/crypto/pubkey', {
+            const r = await fetch('/api/crypto/pubkey', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ publicKey: pubJwk })
             })
+            if (!r.ok) console.warn('[E2E] upload status:', r.status)
         } catch(e) { console.warn('[E2E] upload failed:', e) }
     },
 
@@ -1602,12 +1603,14 @@ const E2E = {
         if (!this._keyPair) { console.warn('[E2E] _deriveKey: no _keyPair'); return null }
         const resp = await fetch('/api/crypto/pubkey/' + encodeURIComponent(username))
         if (!resp.ok) { console.warn('[E2E] _deriveKey: fetch failed for', username, resp.status); return null }
+        console.log('[E2E] _deriveKey: local fp:', this._pubFingerprint)
         const peerJwk = await resp.json()
         const peerKey = await crypto.subtle.importKey('jwk', peerJwk, { name: 'ECDH', namedCurve: 'P-256' }, true, [])
         const peerSpki = await crypto.subtle.exportKey('spki', peerKey)
         const peerHash = await crypto.subtle.digest('SHA-256', peerSpki)
         const peerFp = Array.from(new Uint8Array(peerHash)).map(function(b){return b.toString(16).padStart(2,'0')}).join('').slice(0,16)
         const cacheKey = 'e2e_shared_' + this._pubFingerprint + '_' + peerFp
+        console.log('[E2E] _deriveKey cacheKey:', cacheKey)
         const cached = localStorage.getItem(cacheKey)
         if (cached) {
             const raw = new Uint8Array(Object.values(JSON.parse(cached)))
