@@ -105,10 +105,11 @@ html, body {
 .app-shell {
     display: flex;
     flex-direction: column;
-    position: relative;
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
     height: var(--app-height, 100dvh);
-    min-height: 0;
-    width: 100vw;
     overflow: hidden;
     background: var(--background-color);
 }
@@ -840,7 +841,7 @@ html, body {
     }
 }
 .message-bubble .messageText {
-    padding: 10px 14px;
+    padding: 3px 6px;
     border-radius: var(--message-radius);
     font-size: var(--font-size, 14px);
     line-height: 1.55;
@@ -848,7 +849,7 @@ html, body {
     margin: 0;
     display: flex;
     flex-direction: column;
-    gap: 6px;
+
     font-family: var(--chat-font-family);
 }
 

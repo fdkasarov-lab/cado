@@ -6,7 +6,7 @@ const cookieParser = require("cookie-parser");
 const app = express();
 const path = require('path')
 const port = process.env.PORT || 3000;
-const host = process.env.HOST || 'localhost';
+const host = process.env.HOST || '192.168.44.120';
 const http = require('http');
 // view engine setup
 app.set('views', path.join(__dirname, 'views'))

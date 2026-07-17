@@ -18,10 +18,12 @@
     <meta name="mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-title" content="Cado">
+    
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css"
           crossorigin="anonymous" referrerpolicy="no-referrer"/>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <script>if('visualViewport' in window){var h=function(){document.documentElement.style.setProperty('--app-height',window.visualViewport.height+'px')};window.visualViewport.addEventListener('resize',h);h()}</script>
 </head>
 <body>
 
@@ -1550,13 +1552,84 @@
     /* ═══════════════════════════════════════════════════════════════
        SOCKET INIT
     ═══════════════════════════════════════════════════════════════ */
-    const CurrentUser = new UserObj()
-    const Interlocutor = new UserObj()
-    const CurrentRoom  = new Room()
-    const socket = io()
-    window.socket     = socket   // expose for FCM module
-    window.CurrentRoom = CurrentRoom
-    const form   = document.getElementById('form')
+const CurrentUser  = new UserObj()
+const Interlocutor = new UserObj()
+const CurrentRoom  = new Room()
+
+// ══ E2E Encryption Module ══════════════════════════════════════════════════
+const E2E = {
+    async init() {
+        const stored = localStorage.getItem('e2e_keypair')
+        if (stored) {
+            const { pub, priv } = JSON.parse(stored)
+            const publicKey = await crypto.subtle.importKey('jwk', pub, { name: 'ECDH', namedCurve: 'P-256' }, true, [])
+            const privateKey = await crypto.subtle.importKey('jwk', priv, { name: 'ECDH', namedCurve: 'P-256' }, false, ['deriveBits'])
+            this._keyPair = { publicKey, privateKey }
+            return pub
+        }
+        return this._generate()
+    },
+
+    async _generate() {
+        const kp = await crypto.subtle.generateKey({ name: 'ECDH', namedCurve: 'P-256' }, true, ['deriveBits'])
+        const pub = await crypto.subtle.exportKey('jwk', kp.publicKey)
+        const priv = await crypto.subtle.exportKey('jwk', kp.privateKey)
+        localStorage.setItem('e2e_keypair', JSON.stringify({ pub, priv }))
+        this._keyPair = kp
+        return pub
+    },
+
+    _getStoredPub() {
+        const s = localStorage.getItem('e2e_keypair')
+        return s ? JSON.parse(s).pub : null
+    },
+
+    async _deriveKey(username) {
+        const cacheKey = 'e2e_shared_' + username
+        const cached = localStorage.getItem(cacheKey)
+        if (cached) {
+            const raw = new Uint8Array(Object.values(JSON.parse(cached)))
+            return await crypto.subtle.importKey('raw', raw, { name: 'AES-GCM' }, false, ['encrypt', 'decrypt'])
+        }
+        const resp = await fetch('/api/crypto/pubkey/' + encodeURIComponent(username))
+        if (!resp.ok) return null
+        const peerJwk = await resp.json()
+        const peerKey = await crypto.subtle.importKey('jwk', peerJwk, { name: 'ECDH', namedCurve: 'P-256' }, true, [])
+        const shared = await crypto.subtle.deriveBits({ name: 'ECDH', public: peerKey }, this._keyPair.privateKey, 256)
+        const hash = await crypto.subtle.digest('SHA-256', shared)
+        const bytes = new Uint8Array(hash)
+        localStorage.setItem(cacheKey, JSON.stringify(Array.from(bytes)))
+        return await crypto.subtle.importKey('raw', bytes, { name: 'AES-GCM' }, false, ['encrypt', 'decrypt'])
+    },
+
+    async encrypt(username, plaintext) {
+        if (!plaintext) return plaintext
+        const key = await this._deriveKey(username)
+        if (!key) return plaintext
+        const iv = crypto.getRandomValues(new Uint8Array(12))
+        const ct = await crypto.subtle.encrypt({ name: 'AES-GCM', iv }, key, new TextEncoder().encode(plaintext))
+        return '__e2e__' + btoa(String.fromCharCode(...iv)) + '.' + btoa(String.fromCharCode(...new Uint8Array(ct)))
+    },
+
+    async decrypt(username, text) {
+        if (!text || !text.startsWith('__e2e__')) return text
+        const p = text.slice(7)
+        const m = p.indexOf('.')
+        if (m === -1) return text
+        const iv = new Uint8Array(atob(p.slice(0, m)).split('').map(function(c){return c.charCodeAt(0)}))
+        const ct = new Uint8Array(atob(p.slice(m + 1)).split('').map(function(c){return c.charCodeAt(0)}))
+        const key = await this._deriveKey(username)
+        if (!key) return text
+        const plain = await crypto.subtle.decrypt({ name: 'AES-GCM', iv }, key, ct)
+        return new TextDecoder().decode(plain)
+    }
+}
+// ════════════════════════════════════════════════════════════════════════════
+
+const socket = io()
+window.socket      = socket   // expose for FCM module
+window.CurrentRoom = CurrentRoom
+const form   = document.getElementById('form')
 
     if (!localStorage.getItem('token') || localStorage.getItem('token') === 'null') {
         window.location = window.location.origin + '/login'
@@ -1575,6 +1648,14 @@
                 window.__setupFCMPush(tokenResult.username)
             }
             applyChatCfg().catch(function(){})
+            // Init E2E keys
+            E2E.init().then(function(pub) {
+                if (pub) fetch('/api/crypto/pubkey', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ publicKey: pub })
+                }).catch(function(){})
+            }).catch(function(){})
         } else {
             window.location = window.location.origin + '/login'
         }
@@ -1670,7 +1751,10 @@
         if (Interlocutor.getUsername() && input.value.trim()) {
             socket.emit('stopTyping', { room: CurrentRoom.getName(), sender: CurrentUser.getUsername(), receiver: Interlocutor.getUsername() })
             clearTimeout(typingTimer)
-            socket.emit('chat message', { room: CurrentRoom.getName(), message: input.value.trim(), sender: CurrentUser.getUsername(), receiver: Interlocutor.getUsername() })
+            var msg = input.value.trim()
+            E2E.encrypt(Interlocutor.getUsername(), msg).then(function(encrypted) {
+                socket.emit('chat message', { room: CurrentRoom.getName(), message: encrypted, sender: CurrentUser.getUsername(), receiver: Interlocutor.getUsername() })
+            })
             input.value = ''
         }
     })
@@ -1736,9 +1820,24 @@
                 })
             }
         }
+        var decryptPeer = data.message.sender === CurrentUser.getUsername() ? data.message.receiver : data.message.sender
+        var isEncrypted = typeof data.message.message === 'string' && data.message.message.startsWith('__e2e__')
+        if (isEncrypted) {
+            E2E.decrypt(decryptPeer, data.message.message).then(function(d) {
+                messageText.textContent = d
+                if (chatBtn) {
+                    var pv = chatBtn.querySelector('.chat-item-preview')
+                    if (pv) {
+                        var t = d || (data.message.files && data.message.files.length > 0 ? 'Photo' : '')
+                        pv.textContent = t.length > 50 ? t.slice(0, 50) + '...' : t
+                    }
+                }
+            }).catch(function(){})
+        }
+
         let messageText = document.createElement('p')
         messageText.classList.add('messageText')
-        messageText.textContent = data.message.message
+        messageText.textContent = isEncrypted ? '\u{1F512} Encrypted message' : data.message.message
         msgDate.textContent = date.getHours() + ':' + String(date.getMinutes()).padStart(2,'0')
         msgDate.classList.add('messageDate')
         li.appendChild(messageText)
@@ -1758,8 +1857,13 @@
             const preview = chatBtn.querySelector('.chat-item-preview')
             const timeEl = chatBtn.querySelector('.chat-item-time')
             if (preview) {
-                const txt = data.message.message || (data.message.files && data.message.files.length > 0 ? 'Photo' : '')
-                preview.textContent = txt.length > 50 ? txt.slice(0, 50) + '...' : txt
+                var raw = data.message.message
+                if (typeof raw === 'string' && raw.startsWith('__e2e__')) {
+                    preview.textContent = '\u{1F512} Encrypted'
+                } else {
+                    var txt = raw || (data.message.files && data.message.files.length > 0 ? 'Photo' : '')
+                    preview.textContent = txt.length > 50 ? txt.slice(0, 50) + '...' : txt
+                }
             }
             if (timeEl) {
                 const d = new Date(data.message.created_at)

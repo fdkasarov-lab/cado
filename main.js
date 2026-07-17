@@ -373,13 +373,9 @@ app.get('/', (req, res) => {
                 res.clearCookie('jwt')
                 return res.redirect('/login')
             }
-            if (UserData.firstName && UserData.lastName && UserData.avatar){
-                res.render('index',{
-                    UserInfo: UserData
-                })
-            }else {
-                res.redirect('register/continue')
-            }
+            res.render('index',{
+                UserInfo: UserData
+            })
         })
     }else {
         res.redirect('login')
@@ -423,7 +419,12 @@ app.get("/register/continue", (req, res) => {
     }
 })
 
-app.get("/login", (req, res) => res.render("login"))
+app.get("/login", (req, res) => {
+    if (req.cookies.jwt) {
+        try { Jwt.verify(req.cookies.jwt); return res.redirect('/') } catch(e) {}
+    }
+    res.render("login")
+})
 app.post('/getMessages',(req, res)=>{
     const { username, pageNumber, pageSize} = req.body
     database.getRoomMessages(username,pageSize, pageNumber).then(data =>{
@@ -647,6 +648,34 @@ app.get('/api/chat-cfg/:chatId', async (req, res) => {
         res.status(500).json({ error: 'Server error' })
     }
 })
+// ── E2E Encryption: public key endpoints ────────────────────────────────
+app.post('/api/crypto/pubkey', async (req, res) => {
+    try {
+        const token = req.cookies.jwt
+        if (!token) return res.status(401).json({ error: 'Unauthorized' })
+        const tokenData = Jwt.verify(token)
+        const { publicKey } = req.body
+        if (!publicKey) return res.status(400).json({ error: 'Missing publicKey' })
+        await User.findOneAndUpdate({ username: tokenData.username }, { publicKey })
+        res.json({ ok: true })
+    } catch (err) {
+        console.error('crypto pubkey save:', err)
+        res.status(500).json({ error: 'Server error' })
+    }
+})
+
+app.get('/api/crypto/pubkey/:username', async (req, res) => {
+    try {
+        const user = await User.findOne({ username: req.params.username }).select('publicKey').lean()
+        if (!user || !user.publicKey) return res.status(404).json({ error: 'No public key' })
+        res.json(user.publicKey)
+    } catch (err) {
+        console.error('crypto pubkey get:', err)
+        res.status(500).json({ error: 'Server error' })
+    }
+})
+// ────────────────────────────────────────────────────────────────────────────
+
 server.on('error', (error) => {
     if (error.code === 'EADDRINUSE') {
         console.error(`Port ${port} is already in use. Stop the running server or set another PORT.`);

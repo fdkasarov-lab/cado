@@ -64,6 +64,12 @@ const UserSchema = new Mongoose.Schema({
         type: [String],
         default: [],
     },
+
+    // ── Public key for E2E encryption ──────────────────────────────────────
+    publicKey: {
+        type: Object,
+        default: null,
+    },
 })
 
 const User = Mongoose.model("user", UserSchema)

@@ -339,7 +339,16 @@ function sortMessages(data){
                 let msgDate = document.createElement('span')
                 let messageText = document.createElement('p')
                 messageText.classList.add('messageText')
-                messageText.textContent = message.message;
+                var raw = message.message
+                if (typeof raw === 'string' && raw.startsWith('__e2e__')) {
+                    messageText.textContent = '\u{1F512} Encrypted'
+                    var peer = message.sender === CurrentUser.getUsername() ? message.receiver : message.sender
+                    if (typeof E2E !== 'undefined') {
+                        E2E.decrypt(peer, raw).then(function(d) { messageText.textContent = d }).catch(function(){})
+                    }
+                } else {
+                    messageText.textContent = raw
+                }
                 messageText.appendChild(ImageBox)
                 msgDate.textContent = date.getHours() + ':' + String(date.getMinutes()).padStart(2,'0')
                 msgDate.classList.add('messageDate')
@@ -1078,7 +1087,16 @@ function appendLast(data)
         let msgDate = document.createElement('span')
         let messageText = document.createElement('p')
         messageText.classList.add('messageText')
-        messageText.textContent = item.message;
+        var raw = item.message
+        if (typeof raw === 'string' && raw.startsWith('__e2e__')) {
+            messageText.textContent = '\u{1F512} Encrypted'
+            var peer = item.sender === CurrentUser.getUsername() ? item.receiver : item.sender
+            if (typeof E2E !== 'undefined') {
+                E2E.decrypt(peer, raw).then(function(d) { messageText.textContent = d }).catch(function(){})
+            }
+        } else {
+            messageText.textContent = raw
+        }
         messageText.appendChild(ImageBox)
         msgDate.textContent = date.getHours() + ':' + String(date.getMinutes()).padStart(2,'0')
         msgDate.classList.add('messageDate')
@@ -1158,7 +1176,16 @@ function sortPage(data){
         let msgDate = document.createElement('span')
         let messageText = document.createElement('p')
         messageText.classList.add('messageText')
-        messageText.textContent = item.message;
+        var raw = item.message
+        if (typeof raw === 'string' && raw.startsWith('__e2e__')) {
+            messageText.textContent = '\u{1F512} Encrypted'
+            var peer = item.sender === CurrentUser.getUsername() ? item.receiver : item.sender
+            if (typeof E2E !== 'undefined') {
+                E2E.decrypt(peer, raw).then(function(d) { messageText.textContent = d }).catch(function(){})
+            }
+        } else {
+            messageText.textContent = raw
+        }
         messageText.appendChild(ImageBox)
         msgDate.textContent = date.getHours() + ':' + String(date.getMinutes()).padStart(2,'0')
         msgDate.classList.add('messageDate')
