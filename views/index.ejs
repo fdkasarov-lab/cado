@@ -1559,6 +1559,7 @@ const E2E = {
             const privateKey = await crypto.subtle.importKey('jwk', priv, { name: 'ECDH', namedCurve: 'P-256' }, false, ['deriveBits'])
             this._keyPair = { publicKey, privateKey }
             await this._computeFingerprint()
+            await this._uploadPubKey(pub)
             return pub
         }
         return this._generate()
@@ -1571,7 +1572,18 @@ const E2E = {
         localStorage.setItem('e2e_keypair', JSON.stringify({ pub, priv }))
         this._keyPair = kp
         await this._computeFingerprint()
+        await this._uploadPubKey(pub)
         return pub
+    },
+
+    async _uploadPubKey(pubJwk) {
+        try {
+            await fetch('/api/crypto/pubkey', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ publicKey: pubJwk })
+            })
+        } catch(e) { console.warn('[E2E] upload failed:', e) }
     },
 
     async _computeFingerprint() {
@@ -1650,14 +1662,8 @@ const form   = document.getElementById('form')
         if (tokenResult.username) {
             CurrentUser.setUsername(tokenResult.username)
             CurrentUser.setId(tokenResult.id)
-            // Init E2E first so decrypt calls wait for ready
-            E2E.init().then(function(pub) {
-                if (pub) fetch('/api/crypto/pubkey', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ publicKey: pub })
-                }).catch(function(){})
-            }).catch(function(){})
+            // Init E2E first so decrypt calls wait for ready (upload happens inside init)
+            E2E.init().catch(function(){})
             getChatMessages(tokenResult.username)
             socket.emit('userOnline', { username: tokenResult.username })
             // Request push permission and save FCM token
