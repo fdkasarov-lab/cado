@@ -383,7 +383,7 @@ function sortMessages(data){
                     messageText.textContent = '\u{1F512} Encrypted'
                     var peer = message.sender === CurrentUser.getUsername() ? message.receiver : message.sender
                     if (typeof E2E !== 'undefined') {
-                        E2E.decrypt(peer, raw).then(function(d) { messageText.textContent = d }).catch(function(){})
+                        E2E.decrypt(peer, raw).then(function(d) { messageText.textContent = d }).catch(function(e){ console.error('[E2E] sortMessages decrypt error:', e && e.message ? e.message : e) })
                     }
                 } else {
                     messageText.textContent = raw
@@ -1184,7 +1184,7 @@ function appendLast(data)
             messageText.textContent = '\u{1F512} Encrypted'
             var peer = item.sender === CurrentUser.getUsername() ? item.receiver : item.sender
             if (typeof E2E !== 'undefined') {
-                E2E.decrypt(peer, raw).then(function(d) { messageText.textContent = d }).catch(function(){})
+                E2E.decrypt(peer, raw).then(function(d) { messageText.textContent = d }).catch(function(e){ console.error('[E2E] appendLast decrypt error:', e && e.message ? e.message : e) })
             }
         } else {
             messageText.textContent = raw
@@ -1273,7 +1273,7 @@ function sortPage(data){
             messageText.textContent = '\u{1F512} Encrypted'
             var peer = item.sender === CurrentUser.getUsername() ? item.receiver : item.sender
             if (typeof E2E !== 'undefined') {
-                E2E.decrypt(peer, raw).then(function(d) { messageText.textContent = d }).catch(function(){})
+                E2E.decrypt(peer, raw).then(function(d) { messageText.textContent = d }).catch(function(e){ console.error('[E2E] sortPage decrypt error:', e && e.message ? e.message : e) })
             }
         } else {
             messageText.textContent = raw

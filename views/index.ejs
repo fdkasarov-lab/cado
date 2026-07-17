@@ -1830,7 +1830,7 @@ const form   = document.getElementById('form')
                         pv.textContent = t.length > 50 ? t.slice(0, 50) + '...' : t
                     }
                 }
-            }).catch(function(){})
+            }).catch(function(e){ console.error('[E2E] decrypt error:', e && e.message ? e.message : e) })
         }
         msgDate.textContent = date.getHours() + ':' + String(date.getMinutes()).padStart(2,'0')
         msgDate.classList.add('messageDate')
