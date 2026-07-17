@@ -1558,6 +1558,7 @@ const E2E = {
             const publicKey = await crypto.subtle.importKey('jwk', pub, { name: 'ECDH', namedCurve: 'P-256' }, true, [])
             const privateKey = await crypto.subtle.importKey('jwk', priv, { name: 'ECDH', namedCurve: 'P-256' }, false, ['deriveBits'])
             this._keyPair = { publicKey, privateKey }
+            await this._computeFingerprint()
             return pub
         }
         return this._generate()
@@ -1569,7 +1570,14 @@ const E2E = {
         const priv = await crypto.subtle.exportKey('jwk', kp.privateKey)
         localStorage.setItem('e2e_keypair', JSON.stringify({ pub, priv }))
         this._keyPair = kp
+        await this._computeFingerprint()
         return pub
+    },
+
+    async _computeFingerprint() {
+        const spki = await crypto.subtle.exportKey('spki', this._keyPair.publicKey)
+        const hash = await crypto.subtle.digest('SHA-256', spki)
+        this._pubFingerprint = Array.from(new Uint8Array(hash)).map(function(b){return b.toString(16).padStart(2,'0')}).join('').slice(0,16)
     },
 
     _getStoredPub() {
@@ -1580,7 +1588,7 @@ const E2E = {
     async _deriveKey(username) {
         await this._ready
         if (!this._keyPair) { console.warn('[E2E] _deriveKey: no _keyPair'); return null }
-        const cacheKey = 'e2e_shared_' + username
+        const cacheKey = 'e2e_shared_' + (this._pubFingerprint || 'nofp') + '_' + username
         const cached = localStorage.getItem(cacheKey)
         if (cached) {
             const raw = new Uint8Array(Object.values(JSON.parse(cached)))
