@@ -3741,6 +3741,100 @@ img {
     margin: 0;
 }
 
+/* ═══════ Profile Logout Button ═══════ */
+.profile-logout-wrap {
+    display: flex;
+    justify-content: center;
+    padding: 12px 20px 24px;
+}
+.profile-logout-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    width: 100%;
+    max-width: 280px;
+    padding: 14px 20px;
+    border-radius: 50px;
+    background: var(--sidebar-color);
+    border: 1px solid rgba(239, 68, 68, 0.25);
+    color: #F87171;
+    text-decoration: none;
+    font-size: 15px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background 180ms, border-color 180ms;
+}
+.profile-logout-btn:hover {
+    background: rgba(239, 68, 68, 0.1);
+    border-color: rgba(239, 68, 68, 0.5);
+    color: #FCA5A5;
+}
+.profile-logout-btn i {
+    font-size: 18px;
+}
+
+/* ═══════ Message Requests ═══════ */
+.chat-requests-header {
+    list-style: none;
+    padding: 12px 20px 6px;
+    font-size: 12px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: var(--primary-color);
+}
+.request-banner {
+    flex-shrink: 0;
+    margin: 8px 12px;
+    padding: 14px 16px;
+    background: var(--sidebar-color);
+    border: 1px solid var(--primary-color);
+    border-radius: var(--button-radius);
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    z-index: 5;
+}
+.request-banner .request-banner-text {
+    font-size: 13px;
+    color: var(--text-color);
+    text-align: center;
+}
+.request-banner .request-banner-actions {
+    display: flex;
+    gap: 10px;
+    justify-content: center;
+}
+.request-banner .request-banner-actions button {
+    padding: 8px 20px;
+    border-radius: var(--pill-radius);
+    border: none;
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    transition: background 180ms, transform 180ms;
+}
+.request-banner .request-banner-actions .request-accept-btn {
+    background: var(--primary-color);
+    color: #fff;
+}
+.request-banner .request-banner-actions .request-accept-btn:hover {
+    background: var(--primary-hover);
+    transform: scale(1.03);
+}
+.request-banner .request-banner-actions .request-reject-btn {
+    background: transparent;
+    color: #F87171;
+    border: 1px solid rgba(239,68,68,0.3);
+}
+.request-banner .request-banner-actions .request-reject-btn:hover {
+    background: rgba(239,68,68,0.1);
+}
+
 /* ═══════ Profile Tab ═══════ */
 .profile-tab-scroll {
     flex: 1;

@@ -31,6 +31,16 @@ const ChatSchema = new Mongoose.Schema({
         }, { _id: false }),
         default: {},
     },
+    // ── Message Requests ─────────────────────────────────────────────────────
+    pending: {
+        type: Boolean,
+        default: false,
+    },
+    requester: {
+        type: String,
+        default: '',
+    },
+
     userConfigs: {
         type: Map,
         of: new Mongoose.Schema({

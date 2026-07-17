@@ -103,6 +103,8 @@ module.exports = {
                     _id: "$chatId",
                     firstMember: { $first: "$firstMember" },
                     secondMember: { $first: "$SecondMember" },
+                    pending: { $first: "$pending" },
+                    requester: { $first: "$requester" },
                     chat_messages: { $first: "$chat_messages" } // Retrieve the paginated messages
                 }
             },
@@ -125,7 +127,9 @@ module.exports = {
                created_at: date_ob,
                chatId: chatData.id,
                firstMember: chatData.firstMember,
-               SecondMember: chatData.secondMember
+               SecondMember: chatData.secondMember,
+               pending: chatData.pending || false,
+               requester: chatData.requester || '',
            }).then(chat => {
                let ret = {}
                ret.chat = chat

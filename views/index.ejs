@@ -721,22 +721,6 @@
                 </div>
             </div>
 
-            <div class="profile-section-header">
-                <i class="fa-solid fa-address-book"></i> Contacts
-                <span class="profile-section-badge">${contacts.length ? contactsData.contacts.length : 0}</span>
-            </div>
-            <div class="profile-contacts-list" style="margin-bottom:16px;">
-                ${contacts || '<div class="profile-contacts-empty"><i class="fa-solid fa-users"></i><p>No contacts yet</p><span>Add contacts from chat profiles</span></div>'}
-            </div>
-
-            <div class="profile-section-header" style="margin-top:8px;">
-                <i class="fa-solid fa-palette"></i> Chat Appearance
-                <span class="profile-section-badge" id="chatCfgLabel" style="font-size:10px;">${_lastChatUser ? 'for ' + _lastChatUser : 'no chat selected'}</span>
-            </div>
-            <div class="profile-info-section" style="margin-bottom:16px;">
-                <div id="chatCfgInner">Loading…</div>
-            </div>
-
             <div class="profile-danger-zone">
                 <span class="profile-danger-title">Account</span>
                 <form action="/profile/delete" method="POST" onsubmit="return confirm('Delete your account permanently? This cannot be undone.');">
@@ -746,9 +730,10 @@
                 </form>
             </div>
 
-            <div style="padding:12px 20px 24px;">
-                <a href="/logout" style="display:flex;align-items:center;gap:8px;color:var(--text-secondary);text-decoration:none;font-size:13px;font-weight:500;">
-                    <i class="fa-solid fa-arrow-right-from-bracket"></i> Log out
+            <div class="profile-logout-wrap">
+                <a href="/logout" class="profile-logout-btn">
+                    <i class="fa-solid fa-arrow-right-from-bracket"></i>
+                    <span>Log out</span>
                 </a>
             </div>
 
@@ -1558,7 +1543,15 @@ const CurrentRoom  = new Room()
 
 // ══ E2E Encryption Module ══════════════════════════════════════════════════
 const E2E = {
+    _ready: null,
+
     async init() {
+        if (this._ready) return this._ready
+        this._ready = this._doInit().catch(function() {})
+        return this._ready
+    },
+
+    async _doInit() {
         const stored = localStorage.getItem('e2e_keypair')
         if (stored) {
             const { pub, priv } = JSON.parse(stored)
@@ -1585,6 +1578,8 @@ const E2E = {
     },
 
     async _deriveKey(username) {
+        await this._ready
+        if (!this._keyPair) return null
         const cacheKey = 'e2e_shared_' + username
         const cached = localStorage.getItem(cacheKey)
         if (cached) {
@@ -1641,14 +1636,7 @@ const form   = document.getElementById('form')
         if (tokenResult.username) {
             CurrentUser.setUsername(tokenResult.username)
             CurrentUser.setId(tokenResult.id)
-            getChatMessages(tokenResult.username)
-            socket.emit('userOnline', { username: tokenResult.username })
-            // Request push permission and save FCM token
-            if (window.__setupFCMPush) {
-                window.__setupFCMPush(tokenResult.username)
-            }
-            applyChatCfg().catch(function(){})
-            // Init E2E keys
+            // Init E2E first so decrypt calls wait for ready
             E2E.init().then(function(pub) {
                 if (pub) fetch('/api/crypto/pubkey', {
                     method: 'POST',
@@ -1656,6 +1644,13 @@ const form   = document.getElementById('form')
                     body: JSON.stringify({ publicKey: pub })
                 }).catch(function(){})
             }).catch(function(){})
+            getChatMessages(tokenResult.username)
+            socket.emit('userOnline', { username: tokenResult.username })
+            // Request push permission and save FCM token
+            if (window.__setupFCMPush) {
+                window.__setupFCMPush(tokenResult.username)
+            }
+            applyChatCfg().catch(function(){})
         } else {
             window.location = window.location.origin + '/login'
         }
@@ -1820,8 +1815,11 @@ const form   = document.getElementById('form')
                 })
             }
         }
+        let messageText = document.createElement('p')
+        messageText.classList.add('messageText')
         var decryptPeer = data.message.sender === CurrentUser.getUsername() ? data.message.receiver : data.message.sender
         var isEncrypted = typeof data.message.message === 'string' && data.message.message.startsWith('__e2e__')
+        messageText.textContent = isEncrypted ? '\u{1F512} Encrypted message' : data.message.message
         if (isEncrypted) {
             E2E.decrypt(decryptPeer, data.message.message).then(function(d) {
                 messageText.textContent = d
@@ -1834,10 +1832,6 @@ const form   = document.getElementById('form')
                 }
             }).catch(function(){})
         }
-
-        let messageText = document.createElement('p')
-        messageText.classList.add('messageText')
-        messageText.textContent = isEncrypted ? '\u{1F512} Encrypted message' : data.message.message
         msgDate.textContent = date.getHours() + ':' + String(date.getMinutes()).padStart(2,'0')
         msgDate.classList.add('messageDate')
         li.appendChild(messageText)
@@ -1913,6 +1907,8 @@ const form   = document.getElementById('form')
             CreateChatData.username = data.firstMember
         }
         CreateChatData.room = data.chatId
+        CreateChatData.pending = data.pending
+        CreateChatData.requester = data.requester
         createChat(CreateChatData)
         setChatAvatar(CreateChatData.username)
         const info = document.getElementById("info")

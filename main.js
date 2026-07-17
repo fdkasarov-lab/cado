@@ -298,6 +298,9 @@ io.on('connection', (socket) => {
                 const receiver = await User.findOne({ username: data.receiver }).select('isOnline fcmTokens mutedChats')
                 // Don't send push if chat is muted by receiver
                 if (receiver?.mutedChats?.includes(data.room)) return
+                // Skip push for pending requests
+                const chatDoc = await Chat.findOne({ chatId: data.room }).select('pending').lean()
+                if (chatDoc?.pending) return
                 // Send push if user has tokens (always send — handles background/killed state)
                 if (receiver?.fcmTokens?.length > 0) {
                     const senderDisplayName = await getUserDisplayName(data.sender)
@@ -337,14 +340,21 @@ io.on('connection', (socket) => {
                 socket.join(data.room)
                 socket.emit('joined', { room: data })
             } else {
-                database.createChat({
-                    id: data.room,
-                    firstMember: data.FirstMember,
-                    secondMember: data.secondMember
-                }).then(r => {
-                    rooms.push(r.chat.chatId)
-                    socket.join(r.chat.chatId)
-                    io.emit('JoinedNew', { room: r.chat })
+                // Check if recipient is a contact → skip pending
+                User.findOne({ username: data.FirstMember }).select('contacts').lean().then(function(sender) {
+                    var isContact = sender && sender.contacts && sender.contacts.includes(data.secondMember)
+                    var pending = !isContact
+                    database.createChat({
+                        id: data.room,
+                        firstMember: data.FirstMember,
+                        secondMember: data.secondMember,
+                        pending: pending,
+                        requester: pending ? data.FirstMember : ''
+                    }).then(r => {
+                        rooms.push(r.chat.chatId)
+                        socket.join(r.chat.chatId)
+                        io.emit('JoinedNew', { room: r.chat })
+                    })
                 })
             }
         })
@@ -474,6 +484,39 @@ app.post('/fcm/token', async (req, res) => {
     } catch (err) {
         console.error('FCM token save error:', err)
         res.status(500).json({ error: 'Failed to save token' })
+    }
+})
+
+// ── Message Requests API ──────────────────────────────────────────────────
+app.post('/api/requests/accept', async (req, res) => {
+    try {
+        const token = req.cookies.jwt
+        if (!token) return res.status(401).json({ error: 'Unauthorized' })
+        const tokenData = Jwt.verify(token)
+        const { room } = req.body
+        if (!room) return res.status(400).json({ error: 'Missing room' })
+        await Chat.findOneAndUpdate({ chatId: room }, { pending: false, requester: '' })
+        res.json({ ok: true })
+    } catch (err) {
+        console.error('accept request:', err)
+        res.status(500).json({ error: 'Server error' })
+    }
+})
+
+app.post('/api/requests/reject', async (req, res) => {
+    try {
+        const token = req.cookies.jwt
+        if (!token) return res.status(401).json({ error: 'Unauthorized' })
+        const tokenData = Jwt.verify(token)
+        const { room } = req.body
+        if (!room) return res.status(400).json({ error: 'Missing room' })
+        // Delete chat and all its messages
+        await Chat.deleteOne({ chatId: room })
+        await Message.deleteMany({ chat_Id: room })
+        res.json({ ok: true })
+    } catch (err) {
+        console.error('reject request:', err)
+        res.status(500).json({ error: 'Server error' })
     }
 })
 

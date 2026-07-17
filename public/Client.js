@@ -88,6 +88,8 @@ function createChats(data)
             CreateChatData.username = item.firstMember
         }
         CreateChatData.room = item._id
+        CreateChatData.pending = item.pending
+        CreateChatData.requester = item.requester
         // Extract last message preview
         if (item.chat_messages && item.chat_messages.length > 0) {
             const msgs = item.chat_messages[0].messages || []
@@ -178,48 +180,69 @@ function getUnreadCMessagesCount(data)
 
 
 
-function  createChat(data){
-    let iconList = document.getElementById('iconList')
-    let TabList = document.getElementById('TabList')
-    let li = document.createElement('li')
+function createChat(data) {
+    var iconList = document.getElementById('iconList')
+    var TabList = document.getElementById('TabList')
+    var li = document.createElement('li')
     li.classList.add('chat-list-item')
     li.setAttribute('data-username', data.username)
 
-    const displayName = getDisplayName(data.username)
-    const initial = displayName.charAt(0).toUpperCase()
-    const lastMsg = data.lastMessage || ''
-    const lastTime = data.lastTime || ''
+    var isRequest = data.pending && data.requester && data.requester !== CurrentUser.getUsername()
 
-    li.innerHTML = `
-        <button class="chat-item-btn" data-username="${data.username}" data-room="${data.room}" data-display-name="${displayName}">
-            <div class="chat-item-avatar">
-                <img class="user-avatar" style="display:none;">
-                <span class="avatar-initial">${initial}</span>
-                <span class="unread-indicator d-none" data-user-name="${data.username}"></span>
-            </div>
-            <div class="chat-item-body">
-                <span class="chat-item-name">${displayName}</span>
-                <span class="chat-item-preview">${lastMsg}</span>
-            </div>
-            <span class="chat-item-time">${lastTime}</span>
-        </button>
-    `
+    if (isRequest) {
+        var existingHeader = iconList.querySelector('.chat-requests-header')
+        if (!existingHeader) {
+            var header = document.createElement('li')
+            header.className = 'chat-requests-header'
+            header.innerHTML = '<span>Message Requests</span>'
+            iconList.prepend(header)
+        }
+    }
+
+    var displayName = getDisplayName(data.username)
+    var initial = displayName.charAt(0).toUpperCase()
+    var lastMsg = data.lastMessage || ''
+    var lastTime = data.lastTime || ''
+
+    li.innerHTML = [
+        '<button class="chat-item-btn" data-username="' + data.username + '" data-room="' + data.room + '" data-display-name="' + displayName + '" data-pending="' + (isRequest ? '1' : '0') + '" data-requester="' + (data.requester || '') + '">',
+            '<div class="chat-item-avatar">',
+                '<img class="user-avatar" style="display:none;">',
+                '<span class="avatar-initial">' + initial + '</span>',
+                '<span class="unread-indicator d-none" data-user-name="' + data.username + '"></span>',
+            '</div>',
+            '<div class="chat-item-body">',
+                '<span class="chat-item-name">' + displayName + '</span>',
+                '<span class="chat-item-preview">' + (isRequest ? '\u{1F4EC} Wants to chat' : lastMsg) + '</span>',
+            '</div>',
+            '<span class="chat-item-time">' + lastTime + '</span>',
+        '</button>'
+    ].join('')
 
     li.querySelector('.chat-item-btn').addEventListener('click', function () {
         openExistingChat(this)
     })
 
-    iconList.appendChild(li)
+    if (isRequest) {
+        var existingHeader = iconList.querySelector('.chat-requests-header')
+        if (existingHeader) {
+            iconList.insertBefore(li, existingHeader.nextSibling)
+        } else {
+            iconList.prepend(li)
+        }
+    } else {
+        iconList.appendChild(li)
+    }
 
     // Tab pane for messages
-    let tab = document.createElement('div')
-    let tabContent = document.createElement('div')
-    let TabUl = document.createElement('ul')
-    tabContent.setAttribute('class', 'msg-panel')
-    TabUl.setAttribute('class', 'messages')
-    TabUl.setAttribute('id', data.room + '-messages')
-    tab.setAttribute('class', 'tab-pane fade show')
-    tab.setAttribute('id', data.room)
+    var tab = document.createElement('div')
+    var tabContent = document.createElement('div')
+    var TabUl = document.createElement('ul')
+    tabContent.className = 'msg-panel'
+    TabUl.className = 'messages'
+    TabUl.id = data.room + '-messages'
+    tab.className = 'tab-pane fade show'
+    tab.id = data.room
     tabContent.appendChild(TabUl)
     tab.appendChild(tabContent)
     TabList.appendChild(tab)
@@ -260,6 +283,22 @@ function openExistingChat(button) {
         FirstMember: CurrentUser.getUsername(),
         secondMember: username
     });
+
+    // Show accept/reject banner if this is a pending request from someone else
+    var existingBanner = active.querySelector('.request-banner')
+    if (existingBanner) existingBanner.remove()
+    if (button.dataset.pending === '1') {
+        var banner = document.createElement('div')
+        banner.className = 'request-banner'
+        banner.innerHTML = [
+            '<div class="request-banner-text">' + getDisplayName(username) + ' wants to chat with you</div>',
+            '<div class="request-banner-actions">',
+                '<button class="request-accept-btn" onclick="acceptRequest(\'' + room + '\', this)"><i class="fa-solid fa-check"></i> Accept</button>',
+                '<button class="request-reject-btn" onclick="rejectRequest(\'' + room + '\', this)"><i class="fa-solid fa-xmark"></i> Reject</button>',
+            '</div>'
+        ].join('')
+        active.insertBefore(banner, active.firstChild)
+    }
 
     const panel = active.querySelector('.msg-panel');
     panel.scrollTop = panel.scrollHeight;
@@ -477,6 +516,58 @@ function CloseViewProfile(){
     closeViewProfile()
 }
 
+// ── Message Requests ──────────────────────────────────────────────────────
+function acceptRequest(room, btn) {
+    fetch('/api/requests/accept', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ room: room })
+    }).then(function(r) { return r.json() }).then(function(data) {
+        if (data.ok) {
+            var chatBtn = document.querySelector('#iconList .chat-item-btn[data-room="' + room + '"]')
+            if (chatBtn) {
+                chatBtn.dataset.pending = '0'
+                var preview = chatBtn.querySelector('.chat-item-preview')
+                if (preview) preview.textContent = 'Chat accepted'
+            }
+            var banner = btn && btn.closest('.request-banner')
+            if (banner) banner.remove()
+            // Remove the requests header if no more pending
+            var remaining = document.querySelectorAll('#iconList .chat-item-btn[data-pending="1"]')
+            if (remaining.length === 0) {
+                var hdr = document.querySelector('.chat-requests-header')
+                if (hdr) hdr.remove()
+            }
+        }
+    }).catch(function(){})
+}
+
+function rejectRequest(room, btn) {
+    fetch('/api/requests/reject', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ room: room })
+    }).then(function(r) { return r.json() }).then(function(data) {
+        if (data.ok) {
+            var listItem = document.querySelector('#iconList .chat-item-btn[data-room="' + room + '"]')
+            if (listItem) {
+                var li = listItem.closest('.chat-list-item')
+                if (li) li.remove()
+            }
+            var tabPane = document.getElementById(room)
+            if (tabPane) tabPane.remove()
+            // Remove the requests header if no more pending
+            var remaining = document.querySelectorAll('#iconList .chat-item-btn[data-pending="1"]')
+            if (remaining.length === 0) {
+                var hdr = document.querySelector('.chat-requests-header')
+                if (hdr) hdr.remove()
+            }
+            // Go back to chat list
+            exitChatMode()
+        }
+    }).catch(function(){})
+}
+
 // ── My Profile (full-screen panel) ───────────────────────────────────────
 function viewMyProfile() {
     let existing = document.getElementById('ViewProfilePanel')
@@ -601,9 +692,10 @@ function viewMyProfile() {
                         </form>
                     </div>
 
-                    <div class="profile-form-actions" style="padding:0 20px 20px;">
-                        <a href="/logout" style="display:flex;align-items:center;gap:8px;color:var(--text-secondary);text-decoration:none;font-size:13px;font-weight:500;">
-                            <i class="fa-solid fa-arrow-right-from-bracket"></i> Log out
+                    <div class="profile-logout-wrap" style="padding:0 20px 20px;">
+                        <a href="/logout" class="profile-logout-btn">
+                            <i class="fa-solid fa-arrow-right-from-bracket"></i>
+                            <span>Log out</span>
                         </a>
                     </div>
                 </div>
