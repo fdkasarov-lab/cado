@@ -1588,17 +1588,19 @@ const E2E = {
     async _deriveKey(username) {
         await this._ready
         if (!this._keyPair) { console.warn('[E2E] _deriveKey: no _keyPair'); return null }
-        const cacheKey = 'e2e_shared_' + (this._pubFingerprint || 'nofp') + '_' + username
+        const resp = await fetch('/api/crypto/pubkey/' + encodeURIComponent(username))
+        if (!resp.ok) { console.warn('[E2E] _deriveKey: fetch failed for', username, resp.status); return null }
+        const peerJwk = await resp.json()
+        const peerKey = await crypto.subtle.importKey('jwk', peerJwk, { name: 'ECDH', namedCurve: 'P-256' }, true, [])
+        const peerSpki = await crypto.subtle.exportKey('spki', peerKey)
+        const peerHash = await crypto.subtle.digest('SHA-256', peerSpki)
+        const peerFp = Array.from(new Uint8Array(peerHash)).map(function(b){return b.toString(16).padStart(2,'0')}).join('').slice(0,16)
+        const cacheKey = 'e2e_shared_' + this._pubFingerprint + '_' + peerFp
         const cached = localStorage.getItem(cacheKey)
         if (cached) {
             const raw = new Uint8Array(Object.values(JSON.parse(cached)))
             return await crypto.subtle.importKey('raw', raw, { name: 'AES-GCM' }, false, ['encrypt', 'decrypt'])
         }
-        const resp = await fetch('/api/crypto/pubkey/' + encodeURIComponent(username))
-        if (!resp.ok) { console.warn('[E2E] _deriveKey: fetch failed for', username, resp.status); return null }
-        const peerJwk = await resp.json()
-        console.log('[E2E] _deriveKey: peerJwk keys:', Object.keys(peerJwk).join(','), 'kty:', peerJwk.kty, 'crv:', peerJwk.crv)
-        const peerKey = await crypto.subtle.importKey('jwk', peerJwk, { name: 'ECDH', namedCurve: 'P-256' }, true, [])
         const shared = await crypto.subtle.deriveBits({ name: 'ECDH', public: peerKey }, this._keyPair.privateKey, 256)
         const hash = await crypto.subtle.digest('SHA-256', shared)
         const bytes = new Uint8Array(hash)
