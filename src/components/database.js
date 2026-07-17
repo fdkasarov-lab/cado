@@ -4,7 +4,7 @@ const Mongoose = require("mongoose")
 const User = require("../model/user");
 const Chats = require("../model/chats");
 const ChatMessages = require('../model/message')
-const localDB = process.env.MONGODB_URI || `mongodb+srv://cadoadmin:cadocadocado@cluster0.tnlrizj.mongodb.net/?appName=Cluster0`
+const localDB = process.env.MONGODB_URI || `mongodb+srv://cadoadmin:cadocadocado@cluster0.tnlrizj.mongodb.net/test?appName=Cluster0`
 module.exports = {
  connect:async () => {
      await Mongoose.connect(localDB)
